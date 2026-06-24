@@ -412,6 +412,13 @@ def build_execution_tab(
             )
             return
         is_running["value"] = True
+        media_downloader.PENDING_IDS.clear()
+        media_downloader.FAILED_IDS.clear()
+        media_downloader.DOWNLOADED_IDS.clear()
+        media_downloader.PROCESSED_IDS.clear()
+        media_downloader.CURRENT_BATCH_IDS.clear()
+        media_downloader.BACKLOG_ITERATED.clear()
+        media_downloader.BACKLOG_DONE.clear()
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -421,8 +428,6 @@ def build_execution_tab(
             download_order.clear()
             speed_byte_window.clear()
             last_known_bytes.clear()
-            media_downloader.BACKLOG_ITERATED.clear()
-            media_downloader.BACKLOG_DONE.clear()
             _update_empty_state()
             update_status("Running", "status-running")
             ui.notify("Initializing Telegram Client...", type="info")
@@ -484,6 +489,13 @@ def build_execution_tab(
             )
             return
         is_monitoring["value"] = True
+        media_downloader.PENDING_IDS.clear()
+        media_downloader.FAILED_IDS.clear()
+        media_downloader.DOWNLOADED_IDS.clear()
+        media_downloader.PROCESSED_IDS.clear()
+        media_downloader.CURRENT_BATCH_IDS.clear()
+        media_downloader.BACKLOG_ITERATED.clear()
+        media_downloader.BACKLOG_DONE.clear()
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -493,8 +505,6 @@ def build_execution_tab(
             download_order.clear()
             speed_byte_window.clear()
             last_known_bytes.clear()
-            media_downloader.BACKLOG_ITERATED.clear()
-            media_downloader.BACKLOG_DONE.clear()
             _update_empty_state()
             update_status("Monitoring", "status-monitoring")
             ui.notify("Starting monitor mode...", type="info")
