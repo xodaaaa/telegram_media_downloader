@@ -608,7 +608,7 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
         )
         max_concurrent_downloads = 4
     download_delay = chat_conf.get(
-        "download_delay", global_config.get("download_delay")
+        "download_delay", global_config.get("download_delay", [15, 30])
     )
 
     start_date_val = chat_conf.get("start_date", global_config.get("start_date"))
