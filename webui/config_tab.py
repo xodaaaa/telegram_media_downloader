@@ -448,6 +448,9 @@ def build_config_tab(config: dict, save_config_fn):
 
     # ── Save / Reload Actions ──
     def do_save():
+        def _s(val):
+            return (str(val) if val else "").strip()
+
         try:
             config["api_id"] = (
                 int(global_inputs["api_id"].value)
@@ -458,8 +461,9 @@ def build_config_tab(config: dict, save_config_fn):
             config["api_id"] = None
         config["api_hash"] = global_inputs["api_hash"].value or ""
         config["parallel_chats"] = global_inputs["parallel_chats"].value
-        if global_inputs["download_dir"].value.strip():
-            config["download_directory"] = global_inputs["download_dir"].value.strip()
+        dl_dir_value = global_inputs["download_dir"].value
+        if dl_dir_value and str(dl_dir_value).strip():
+            config["download_directory"] = str(dl_dir_value).strip()
         elif "download_directory" in config:
             del config["download_directory"]
         config["max_concurrent_downloads"] = (
@@ -467,7 +471,7 @@ def build_config_tab(config: dict, save_config_fn):
             if global_inputs["max_concurrent"].value
             else 4
         )
-        delay_str = global_inputs["download_delay"].value.strip()
+        delay_str = (global_inputs["download_delay"].value or "").strip()
         if delay_str:
             if "," in delay_str:
                 parts = [
@@ -481,13 +485,13 @@ def build_config_tab(config: dict, save_config_fn):
             del config["download_delay"]
         config["media_types"] = global_inputs["media_types"].value
 
-        if global_inputs["start_date"].value.strip():
-            config["start_date"] = global_inputs["start_date"].value.strip()
+        if global_inputs["start_date"].value and _s(global_inputs["start_date"].value):
+            config["start_date"] = _s(global_inputs["start_date"].value)
         elif "start_date" in config:
             del config["start_date"]
 
-        if global_inputs["end_date"].value.strip():
-            config["end_date"] = global_inputs["end_date"].value.strip()
+        if global_inputs["end_date"].value and _s(global_inputs["end_date"].value):
+            config["end_date"] = _s(global_inputs["end_date"].value)
         elif "end_date" in config:
             del config["end_date"]
 
@@ -500,25 +504,25 @@ def build_config_tab(config: dict, save_config_fn):
         config["file_formats"] = {
             "audio": [
                 x.strip()
-                for x in global_inputs["format_audio"].value.split(",")
+                for x in _s(global_inputs["format_audio"].value).split(",")
                 if x.strip()
             ]
             or ["all"],
             "video": [
                 x.strip()
-                for x in global_inputs["format_video"].value.split(",")
+                for x in _s(global_inputs["format_video"].value).split(",")
                 if x.strip()
             ]
             or ["all"],
             "photo": [
                 x.strip()
-                for x in global_inputs["format_photo"].value.split(",")
+                for x in _s(global_inputs["format_photo"].value).split(",")
                 if x.strip()
             ]
             or ["all"],
             "document": [
                 x.strip()
-                for x in global_inputs["format_document"].value.split(",")
+                for x in _s(global_inputs["format_document"].value).split(",")
                 if x.strip()
             ]
             or ["all"],
@@ -526,7 +530,7 @@ def build_config_tab(config: dict, save_config_fn):
 
         built_chats = []
         for c_in in chat_inputs:
-            chat_val = c_in["chat_id"].value.strip()
+            chat_val = (c_in["chat_id"].value or "").strip()
             if not chat_val:
                 continue
             try:
@@ -540,15 +544,15 @@ def build_config_tab(config: dict, save_config_fn):
                 ),
                 "ids_to_retry": c_in["ids_to_retry"],
             }
-            if c_in["download_dir"].value.strip():
-                chat_obj["download_directory"] = c_in["download_dir"].value.strip()
+            if _s(c_in["download_dir"].value):
+                chat_obj["download_directory"] = _s(c_in["download_dir"].value)
             if c_in["media_types"].value:
                 chat_obj["media_types"] = c_in["media_types"].value
 
             if c_in["max_concurrent"].value is not None:
                 chat_obj["max_concurrent_downloads"] = int(c_in["max_concurrent"].value)
 
-            c_delay_str = c_in["download_delay"].value.strip()
+            c_delay_str = _s(c_in["download_delay"].value)
             if c_delay_str:
                 if "," in c_delay_str:
                     c_delay_parts = [
@@ -561,37 +565,37 @@ def build_config_tab(config: dict, save_config_fn):
                 elif c_delay_str.isdigit():
                     chat_obj["download_delay"] = int(c_delay_str)
 
-            if c_in["start_date"].value.strip():
-                chat_obj["start_date"] = c_in["start_date"].value.strip()
-            if c_in["end_date"].value.strip():
-                chat_obj["end_date"] = c_in["end_date"].value.strip()
+            if _s(c_in["start_date"].value):
+                chat_obj["start_date"] = _s(c_in["start_date"].value)
+            if _s(c_in["end_date"].value):
+                chat_obj["end_date"] = _s(c_in["end_date"].value)
             if c_in["max_messages"].value is not None:
                 chat_obj["max_messages"] = int(c_in["max_messages"].value)
 
             # Chat-specific file_formats
             chat_formats = {}
-            if c_in["format_audio"].value.strip():
+            if _s(c_in["format_audio"].value):
                 chat_formats["audio"] = [
                     x.strip()
-                    for x in c_in["format_audio"].value.split(",")
+                    for x in _s(c_in["format_audio"].value).split(",")
                     if x.strip()
                 ]
-            if c_in["format_video"].value.strip():
+            if _s(c_in["format_video"].value):
                 chat_formats["video"] = [
                     x.strip()
-                    for x in c_in["format_video"].value.split(",")
+                    for x in _s(c_in["format_video"].value).split(",")
                     if x.strip()
                 ]
-            if c_in["format_photo"].value.strip():
+            if _s(c_in["format_photo"].value):
                 chat_formats["photo"] = [
                     x.strip()
-                    for x in c_in["format_photo"].value.split(",")
+                    for x in _s(c_in["format_photo"].value).split(",")
                     if x.strip()
                 ]
-            if c_in["format_document"].value.strip():
+            if _s(c_in["format_document"].value):
                 chat_formats["document"] = [
                     x.strip()
-                    for x in c_in["format_document"].value.split(",")
+                    for x in _s(c_in["format_document"].value).split(",")
                     if x.strip()
                 ]
             if chat_formats:

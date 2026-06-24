@@ -21,6 +21,7 @@ def build_setup_wizard(
     start_step : int
         1 = full wizard, 2 = phone only, 3 = chat only.
     """
+
     def _safe_int(v):
         try:
             return int(v)
@@ -30,9 +31,11 @@ def build_setup_wizard(
     wizard_state = {
         "step": start_step,
         "api_id": _safe_int(config.get("api_id")),
-        "api_hash": config.get("api_hash", "")
-        if isinstance(config.get("api_hash"), str)
-        else "",
+        "api_hash": (
+            config.get("api_hash", "")
+            if isinstance(config.get("api_hash"), str)
+            else ""
+        ),
         "phone": config.get("phone", ""),
         "client": None,
         "phone_code_hash": "",
