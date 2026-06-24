@@ -70,7 +70,7 @@ def build_execution_tab(
     def update_speed_display():
         if speed_label is not None:
             s = compute_speed_str()
-            speed_label.set_text(f"\u2b07 {s}" if s else "\u2b07 \u2014")
+            speed_label.set_text(f"\u2b07 {s}" if s else "\u2b07 0 B/s")
 
     # Section Header + Status
     with ui.column().style("gap: 2px; margin-bottom: 28px;"):
@@ -467,7 +467,8 @@ def build_execution_tab(
                 pending_label.set_text(f"\U0001f4e5 {total} pending")
                 pending_label.style("color: var(--accent);")
             else:
-                pending_label.set_text("")
+                pending_label.set_text("\U0001f4e5 0 pending")
+                pending_label.style("color: var(--text-tertiary);")
 
     ui.timer(0.5, update_pending)
     ui.timer(1.0, update_total_gb)
