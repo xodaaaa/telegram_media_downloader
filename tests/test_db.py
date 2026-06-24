@@ -9,6 +9,65 @@ from unittest import mock
 import db
 
 
+class TestFormatBytes(unittest.TestCase):
+    """Tests for format_bytes helper."""
+
+    def test_zero_bytes(self):
+        self.assertEqual(db.format_bytes(0), "0 B")
+
+    def test_negative_bytes(self):
+        self.assertEqual(db.format_bytes(-1), "0 B")
+
+    def test_bytes(self):
+        self.assertEqual(db.format_bytes(500), "500 B")
+
+    def test_kb(self):
+        self.assertEqual(db.format_bytes(2048), "2.0 KB")
+
+    def test_mb(self):
+        self.assertEqual(db.format_bytes(5 * 1024**2), "5.0 MB")
+
+    def test_gb(self):
+        self.assertEqual(db.format_bytes(3 * 1024**3), "3.0 GB")
+        self.assertEqual(db.format_bytes(int(1.5 * 1024**3)), "1.5 GB")
+
+    def test_tb(self):
+        self.assertEqual(db.format_bytes(2 * 1024**4), "2.0 TB")
+
+
+class TestGetTotalDownloadedBytes(unittest.TestCase):
+    """Tests for get_total_downloaded_bytes."""
+
+    def setUp(self):
+        db._db_initialized = False
+        import tempfile
+
+        self._db_file = tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite3")
+        self._db_file.close()
+        self._db_path = self._db_file.name
+        self._patcher = __import__("unittest").mock.patch("db.DB_PATH", self._db_path)
+        self._patcher.start()
+
+    def tearDown(self):
+        self._patcher.stop()
+        import os
+
+        if os.path.exists(self._db_path):
+            try:
+                os.remove(self._db_path)
+            except OSError:
+                pass
+
+    def test_empty_db_returns_zero(self):
+        self.assertEqual(db.get_total_downloaded_bytes(), 0)
+
+    def test_sums_multiple_records(self):
+        db.record_download("c1", 1, "a.jpg", 1024)
+        db.record_download("c1", 2, "b.jpg", 2048)
+        db.record_download("c2", 3, "c.jpg", 512)
+        self.assertEqual(db.get_total_downloaded_bytes(), 3584)
+
+
 class TestDB(unittest.TestCase):
     """Tests for db.py logic."""
 

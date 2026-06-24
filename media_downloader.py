@@ -9,7 +9,7 @@ from datetime import date, datetime, timezone
 from typing import List, Optional, Tuple, Union
 
 from rich.logging import RichHandler
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 from telethon.errors import FileReferenceExpiredError
 from telethon.tl.types import (
     Document,
@@ -42,6 +42,11 @@ FAILED_IDS: dict = {}
 DOWNLOADED_IDS: dict = {}
 PROCESSED_IDS: dict = {}
 CURRENT_BATCH_IDS: dict = {}
+
+# Messages with media received in monitor mode but not yet downloaded.
+PENDING_IDS: dict = {}
+
+VALID_MODES = ("history", "monitor", "history_monitor")
 
 # Global hook for Web UI to receive progress updates
 UI_PROGRESS_HOOK = None
@@ -122,6 +127,59 @@ def _is_exist(file_path: str) -> bool:
         True if the file exists else False.
     """
     return not os.path.isdir(file_path) and os.path.exists(file_path)
+
+
+def _resolve_monitor_settings(global_config: dict, chat_conf: dict) -> dict:
+    """Resolve media_types, file_formats, max_concurrent_downloads and
+    download_directory with fallback chat -> global.
+
+    Parameters
+    ----------
+    global_config: dict
+        Global configuration dictionary.
+    chat_conf: dict
+        Per-chat configuration dictionary.
+
+    Returns
+    -------
+    dict
+        Resolved settings for the chat.
+    """
+    media_types = chat_conf.get("media_types", global_config.get("media_types", []))
+    file_formats = chat_conf.get("file_formats", global_config.get("file_formats", {}))
+
+    raw_concurrent = chat_conf.get(
+        "max_concurrent_downloads",
+        global_config.get("max_concurrent_downloads", 4),
+    )
+    try:
+        max_concurrent_downloads = int(raw_concurrent)
+        if max_concurrent_downloads <= 0:
+            raise ValueError
+    except (TypeError, ValueError):
+        logger.warning(
+            "Invalid max_concurrent_downloads %r; defaulting to 4.",
+            raw_concurrent,
+        )
+        max_concurrent_downloads = 4
+
+    download_directory_val = chat_conf.get(
+        "download_directory", global_config.get("download_directory")
+    )
+    if isinstance(download_directory_val, str) and download_directory_val.strip():
+        download_directory = download_directory_val.strip()
+        if not os.path.isabs(download_directory):
+            download_directory = os.path.abspath(download_directory)
+        os.makedirs(download_directory, exist_ok=True)
+    else:
+        download_directory = None
+
+    return {
+        "media_types": media_types,
+        "file_formats": file_formats,
+        "max_concurrent_downloads": max_concurrent_downloads,
+        "download_directory": download_directory,
+    }
 
 
 def _progress_callback(current: int, total: int, pbar: tqdm) -> None:
@@ -653,6 +711,151 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
         update_config(global_config)
 
 
+async def register_monitor_handler(
+    client, global_config: dict, chat_conf: dict
+) -> None:
+    """Register a NewMessage handler for one chat in monitor mode.
+
+    Parameters
+    ----------
+    client: TelegramClient
+        Connected Telethon client.
+    global_config: dict
+        Global configuration for fallback resolution.
+    chat_conf: dict
+        Per-chat configuration dict (mutated with last_read_message_id).
+    """
+    chat_id = chat_conf["chat_id"]
+    settings = _resolve_monitor_settings(global_config, chat_conf)
+    semaphore = asyncio.Semaphore(max(1, settings["max_concurrent_downloads"]))
+    PENDING_IDS.setdefault(chat_id, 0)
+    FAILED_IDS.setdefault(chat_id, [])
+    DOWNLOADED_IDS.setdefault(chat_id, [])
+
+    @client.on(events.NewMessage(chats=chat_id))
+    async def _handler(event):
+        message = event.message
+        _type = get_media_type(message)
+        if not _type or _type not in settings["media_types"]:
+            return
+
+        PENDING_IDS[chat_id] = PENDING_IDS.get(chat_id, 0) + 1
+        try:
+            async with semaphore:
+                await download_media(
+                    client,
+                    message,
+                    settings["media_types"],
+                    settings["file_formats"],
+                    chat_id,
+                    settings["download_directory"],
+                )
+        finally:
+            PENDING_IDS[chat_id] = max(0, PENDING_IDS.get(chat_id, 1) - 1)
+
+        chat_conf["last_read_message_id"] = message.id
+
+    logger.info("Monitor mode listening for chat_id: %s", chat_id)
+
+
+async def begin_monitor(config: dict) -> TelegramClient:
+    """Create the client, register listeners for each chat, and return
+    the connected client (does not block).
+
+    Parameters
+    ----------
+    config: dict
+        Configuration dictionary.
+
+    Returns
+    -------
+    TelegramClient
+        Connected Telethon client with listeners registered.
+    """
+    proxy = config.get("proxy")
+    proxy_dict = None
+    if proxy:
+        proxy_dict = {
+            "proxy_type": proxy["scheme"],
+            "addr": proxy["hostname"],
+            "port": proxy["port"],
+            "username": proxy.get("username"),
+            "password": proxy.get("password"),
+        }
+    client = TelegramClient(
+        "media_downloader",
+        api_id=config["api_id"],
+        api_hash=config["api_hash"],
+        proxy=proxy_dict,
+        device_model=DEVICE_MODEL,
+        system_version=SYSTEM_VERSION,
+        app_version=APP_VERSION,
+        lang_code=LANG_CODE,
+    )
+    await client.start()
+
+    chats_config = config.get("chats", [])
+    if not chats_config:
+        if "chat_id" not in config:
+            await client.disconnect()
+            raise KeyError(
+                "chat_id must be specified either in a chats list or globally."
+            )
+        chats_config = [config]
+
+    for chat_conf in chats_config:
+        await register_monitor_handler(client, config, chat_conf)
+
+    logger.info(
+        "Monitor mode active for %d chat(s). Waiting for new media...",
+        len(chats_config),
+    )
+    return client
+
+
+async def check_account_premium(config: dict):
+    """Connect to Telegram and check if the account is Premium.
+
+    Parameters
+    ----------
+    config: dict
+        Configuration dictionary with API credentials.
+
+    Returns
+    -------
+    Optional[bool]
+        ``True`` if Premium, ``False`` if Free, ``None`` if unable
+        to determine.
+    """
+    try:
+        proxy = config.get("proxy")
+        proxy_dict = None
+        if proxy:
+            proxy_dict = {
+                "proxy_type": proxy["scheme"],
+                "addr": proxy["hostname"],
+                "port": proxy["port"],
+                "username": proxy.get("username"),
+                "password": proxy.get("password"),
+            }
+        client = TelegramClient(
+            "media_downloader",
+            api_id=config["api_id"],
+            api_hash=config["api_hash"],
+            proxy=proxy_dict,
+            device_model=DEVICE_MODEL,
+            system_version=SYSTEM_VERSION,
+            app_version=APP_VERSION,
+            lang_code=LANG_CODE,
+        )
+        await client.start()
+        me = await client.get_me()
+        await client.disconnect()
+        return getattr(me, "premium", False) if me else None
+    except Exception:
+        return None
+
+
 async def begin_import(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     config: dict, pagination_limit: int
 ) -> dict:
@@ -730,10 +933,46 @@ async def begin_import(  # pylint: disable=too-many-locals,too-many-branches,too
     return config
 
 
-def main():
+def main():  # pylint: disable=too-many-branches,too-many-statements
     """Main function of the downloader."""
     config = config_manager.load_config()
+    mode = config.get("mode", "history")
+    if mode not in VALID_MODES:
+        logger.warning("Unknown mode %r in config; falling back to 'history'.", mode)
+        mode = "history"
 
+    if mode == "monitor":
+        client = asyncio.get_event_loop().run_until_complete(begin_monitor(config))
+        try:
+            client.run_until_disconnected()
+        except KeyboardInterrupt:
+            logger.warning("KeyboardInterrupt received. Stopping monitor mode...")
+        update_config(config)
+        return
+
+    if mode == "history_monitor":
+        updated_config = config
+        try:
+            updated_config = asyncio.get_event_loop().run_until_complete(
+                begin_import(config, pagination_limit=100)
+            )
+        except KeyboardInterrupt:
+            logger.warning("KeyboardInterrupt during backlog. Skipping monitor phase.")
+            update_config(updated_config)
+            return
+        update_config(updated_config)
+        logger.info("Backlog complete. Switching to Monitor mode...")
+        client = asyncio.get_event_loop().run_until_complete(
+            begin_monitor(updated_config)
+        )
+        try:
+            client.run_until_disconnected()
+        except KeyboardInterrupt:
+            logger.warning("KeyboardInterrupt received. Stopping monitor mode...")
+        update_config(updated_config)
+        return
+
+    # mode == "history" (legacy, exactly as before)
     updated_config = config
     try:
         updated_config = asyncio.get_event_loop().run_until_complete(

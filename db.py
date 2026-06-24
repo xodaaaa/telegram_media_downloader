@@ -21,8 +21,7 @@ def init_db():
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
+            cursor.execute("""
                 CREATE TABLE IF NOT EXISTS download_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     chat_id TEXT NOT NULL,
@@ -32,8 +31,7 @@ def init_db():
                     download_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                     file_path TEXT
                 )
-            """
-            )
+            """)
             # Migration check: add file_path if it doesn't exist
             cursor.execute("PRAGMA table_info(download_history)")
             columns = [c[1] for c in cursor.fetchall()]
@@ -85,6 +83,53 @@ def record_download(
     except Exception as e:
         logger = logging.getLogger("media_downloader")
         logger.error(f"Failed to record download history for {file_name}: {e}")
+
+
+def format_bytes(n: int) -> str:
+    """Format a byte count into a human-readable string.
+
+    Parameters
+    ----------
+    n: int
+        Number of bytes.
+
+    Returns
+    -------
+    str
+        Human-readable size string (e.g. "142.7 GB", "12.4 MB").
+    """
+    if n <= 0:
+        return "0 B"
+    if n >= 1024**4:
+        return f"{n / (1024**4):.1f} TB"
+    if n >= 1024**3:
+        return f"{n / (1024**3):.1f} GB"
+    if n >= 1024**2:
+        return f"{n / 1024**2:.1f} MB"
+    if n >= 1024:
+        return f"{n / 1024:.1f} KB"
+    return f"{n} B"
+
+
+def get_total_downloaded_bytes() -> int:
+    """Sum file_size of all download history entries.
+
+    Returns
+    -------
+    int
+        Total bytes downloaded across all history.
+    """
+    _ensure_db()
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COALESCE(SUM(file_size), 0) FROM download_history")
+            row = cursor.fetchone()
+            return int(row[0]) if row else 0
+    except Exception as e:
+        logger = logging.getLogger("media_downloader")
+        logger.error("Failed to compute total downloaded size: %s", e)
+        return 0
 
 
 def reset_history():

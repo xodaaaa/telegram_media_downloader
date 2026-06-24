@@ -28,6 +28,18 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):
 
     with ui.element("div").classes("premium-card").style("padding: 24px;"):
 
+        # ── Total Downloaded ──
+        total_label = ui.label("").style(
+            "font-size: 13px; font-weight: 500; color: var(--text-tertiary); "
+            "margin-bottom: 16px;"
+        )
+
+        def _refresh_total():
+            total_bytes = db.get_total_downloaded_bytes()
+            total_label.set_text(f"Total downloaded: {db.format_bytes(total_bytes)}")
+
+        _refresh_total()
+
         # ── Filters Row ──
         with ui.row().style(
             "gap: 12px; width: 100%; margin-bottom: 20px; align-items: center; flex-wrap: wrap;"
@@ -204,8 +216,10 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):
                 )
             history_table.rows = rows
             page_label.set_text(
-                f"Page {pagination['page']} of {max(1, -(-total // pagination['limit']))} · {total} items"
+                f"Page {pagination['page']} of {max(1, -(-total // pagination['limit']))}"
+                f" \u00b7 {total} items"
             )
+            _refresh_total()
 
         # ── Pagination ──
         with ui.row().style(

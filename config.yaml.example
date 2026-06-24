@@ -1,6 +1,11 @@
 api_hash: your_api_hash
 api_id: your_api_id
 
+# Execution mode: "history" (default) downloads the backlog and exits.
+# "monitor" skips the backlog and listens for new incoming media forever.
+# "history_monitor" downloads the backlog first, then switches to monitor mode.
+mode: history
+
 # The downloader can process multiple chats (either sequentially or in parallel).
 # The 'chats' list is highly customizable per chat. If an option is not provided
 # in a chat dictionary, it will fall back to the global option defined above.

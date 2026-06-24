@@ -157,6 +157,11 @@ The very first step requires you to obtain a valid Telegram API key (API id/hash
 api_hash: your_api_hash
 api_id: your_api_id
 
+# Execution mode: "history" (default) downloads the backlog and exits.
+# "monitor" skips the backlog and listens for new incoming media forever.
+# "history_monitor" downloads the backlog first, then switches to monitor mode.
+mode: history
+
 # The downloader can process multiple chats (either sequentially or in parallel).
 # The 'chats' list is highly customizable per chat. If an option is not provided
 # in a chat dictionary, it will fall back to the global option defined above.
@@ -203,6 +208,7 @@ download_delay: null          # Delay between files: fixed (2) or random range (
 |---|---|
 | `api_hash` | The api_hash you got from telegram apps |
 | `api_id` | The api_id you got from telegram apps |
+| `mode` | Execution mode: `"history"` (default) downloads backlog and exits; `"monitor"` listens for new messages indefinitely; `"history_monitor"` does backlog then switches to monitor. |
 | `parallel_chats` | If `true`, downloads chats inside the `chats` list concurrently. |
 | `chats` | A list of discrete chats/channels to download from. Setting `media_types`, `download_directory`, etc., locally inside here overrides global options. |
 | `chat_id` | The id of the chat/channel you want to download media for. Can be set globally or locally. |

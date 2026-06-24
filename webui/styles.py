@@ -131,6 +131,9 @@ body.body--dark .q-field--outlined .q-field__control:before { border-color: var(
 .status-success { background: rgba(16,185,129,0.1); color: var(--positive); }
 .status-error { background: rgba(239,68,68,0.1); color: var(--negative); }
 .status-warning { background: rgba(245,158,11,0.1); color: var(--warning); }
+.status-premium { background: rgba(245,158,11,0.12); color: var(--warning); }
+.status-free { background: var(--surface-2); color: var(--text-tertiary); }
+.status-monitoring { background: rgba(99,102,241,0.12); color: var(--accent); }
 
 /* ── Progress Row ────────────────────────────────────────────── */
 .dl-row { background: var(--surface); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: 12px 16px; transition: all var(--transition); }
@@ -155,6 +158,13 @@ body.body--dark .terminal-log { background: #020617 !important; border-color: #1
 .label-xs { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 .divider { height: 1px; background: var(--border); margin: 16px 0; border: none; }
 
+@keyframes pulse-monitor {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+.status-monitoring .pulse-dot {
+    animation: pulse-monitor 1.5s ease-in-out infinite;
+}
 /* Hide Quasar header since we use sidebar */
 .q-header { display: none !important; }
 .q-page-container { padding-top: 0 !important; }
