@@ -72,7 +72,7 @@ def build_execution_tab(
     def update_speed_display():
         if speed_label is not None:
             s = compute_speed_str()
-            speed_label.set_text(f"\u2b07 {s}" if s else "\u2b07 0 B/s")
+            speed_label.set_text(s if s else "0 B/s")
 
     # Section Header + Status
     with ui.column().style("gap: 2px; margin-bottom: 28px;"):
@@ -101,20 +101,40 @@ def build_execution_tab(
     def update_total_gb():
         if total_gb_label is not None:
             total_bytes = db.get_total_downloaded_bytes()
-            total_gb_label.set_text(f"Total: {db.format_bytes(total_bytes)}")
+            total_gb_label.set_text(db.format_bytes(total_bytes))
 
-    # Metrics row (speed + pending + total GB)
-    with ui.row().style("gap: 16px; margin-bottom: 20px; align-items: center;"):
-        speed_label = ui.label("\u2b07 \u2014").style(
-            "font-size: 14px; font-weight: 600;"
-            " color: var(--accent); font-variant-numeric: tabular-nums;"
-        )
-        pending_label = ui.label("").style(
-            "font-size: 13px; font-weight: 600; color: var(--text-secondary);"
-        )
-        total_gb_label = ui.label("").style(
-            "font-size: 13px; font-weight: 500; color: var(--text-tertiary);"
-        )
+    # Metrics row
+    with ui.row().style("gap: 24px; margin-bottom: 20px; align-items: end;"):
+        with ui.column().style("gap: 2px; align-items: center;"):
+            speed_label = ui.label("\u2014").style(
+                "font-size: 18px; font-weight: 700;"
+                " color: var(--accent); font-variant-numeric: tabular-nums;"
+            )
+            ui.label("\u2b07 speed").style(
+                "font-size: 10px; font-weight: 500;"
+                " color: var(--text-tertiary); text-transform: uppercase;"
+                " letter-spacing: 0.05em;"
+            )
+        with ui.column().style("gap: 2px; align-items: center;"):
+            pending_label = ui.label("0 / 0").style(
+                "font-size: 18px; font-weight: 700;"
+                " color: var(--text-secondary); font-variant-numeric: tabular-nums;"
+            )
+            ui.label("\U0001f4e5 active / queued").style(
+                "font-size: 10px; font-weight: 500;"
+                " color: var(--text-tertiary); text-transform: uppercase;"
+                " letter-spacing: 0.05em;"
+            )
+        with ui.column().style("gap: 2px; align-items: center;"):
+            total_gb_label = ui.label("\u2014").style(
+                "font-size: 18px; font-weight: 700;"
+                " color: var(--text-primary); font-variant-numeric: tabular-nums;"
+            )
+            ui.label("\U0001f4e6 total").style(
+                "font-size: 10px; font-weight: 500;"
+                " color: var(--text-tertiary); text-transform: uppercase;"
+                " letter-spacing: 0.05em;"
+            )
 
     # Active Downloads card
     with ui.element("div").classes("premium-card").style(
@@ -531,25 +551,15 @@ def build_execution_tab(
 
     def update_pending():
         if pending_label is not None:
-            total_pending = sum(media_downloader.PENDING_IDS.values())
+            active = sum(media_downloader.PENDING_IDS.values())
+            total_iter = sum(media_downloader.BACKLOG_ITERATED.values())
             total_done = sum(media_downloader.BACKLOG_DONE.values())
-
-            if total_pending > 0 and total_done > 0:
-                pending_label.set_text(
-                    f"\U0001f4e5 {total_pending} active  \u00b7  {total_done} done"
-                )
+            queued = max(0, total_iter - total_done)
+            pending_label.set_text(f"{active} / {queued}")
+            if active > 0:
                 pending_label.style("color: var(--accent);")
-            elif total_pending > 0:
-                pending_label.set_text(f"\U0001f4e5 {total_pending} active")
-                pending_label.style("color: var(--accent);")
-            elif total_done > 0:
-                pending_label.set_text(
-                    f"\U0001f4e5 {total_done} done"
-                )
-                pending_label.style("color: var(--text-secondary);")
             else:
-                pending_label.set_text("\U0001f4e5 0 pending")
-                pending_label.style("color: var(--text-tertiary);")
+                pending_label.style("color: var(--text-secondary);")
 
     ui.timer(0.5, update_pending)
     ui.timer(1.0, update_total_gb)
