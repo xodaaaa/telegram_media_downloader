@@ -533,6 +533,7 @@ async def process_messages(  # pylint: disable=too-many-positional-arguments
                             download_delay,
                         )
                 if delay is not None:
+                    logger.info("Waiting %.1fs before next download...", delay)
                     await asyncio.sleep(delay)
             PENDING_IDS[chat_id] = PENDING_IDS.get(chat_id, 0) + 1
             msg_id = int(
