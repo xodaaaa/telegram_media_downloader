@@ -104,7 +104,7 @@ def build_execution_tab(
             total_gb_label.set_text(f"Total: {db.format_bytes(total_bytes)}")
 
     # Metrics row (speed + pending + total GB)
-    with ui.row().style("gap: 16px; margin-bottom: 4px; align-items: center;"):
+    with ui.row().style("gap: 16px; margin-bottom: 20px; align-items: center;"):
         speed_label = ui.label("\u2b07 \u2014").style(
             "font-size: 14px; font-weight: 600;"
             " color: var(--accent); font-variant-numeric: tabular-nums;"
@@ -115,12 +115,6 @@ def build_execution_tab(
         total_gb_label = ui.label("").style(
             "font-size: 13px; font-weight: 500; color: var(--text-tertiary);"
         )
-    ui.label(
-        "\u2b07 speed  \u00b7  \U0001f4e5 backlog  \u00b7  \U0001f4e6 total"
-    ).style(
-        "font-size: 11px; font-weight: 400; color: var(--text-tertiary);"
-        " margin-bottom: 18px; letter-spacing: 0.02em;"
-    )
 
     # Active Downloads card
     with ui.element("div").classes("premium-card").style(
@@ -143,7 +137,10 @@ def build_execution_tab(
 
     def _update_empty_state():
         if "el" in empty_state_ref:
-            if active_downloads:
+            has_visible = any(
+                entry[7] for entry in active_downloads.values()
+            )
+            if has_visible:
                 empty_state_ref["el"].style("display: none;")
             else:
                 empty_state_ref["el"].style("")
@@ -535,19 +532,21 @@ def build_execution_tab(
     def update_pending():
         if pending_label is not None:
             total_pending = sum(media_downloader.PENDING_IDS.values())
-            total_iter = sum(media_downloader.BACKLOG_ITERATED.values())
             total_done = sum(media_downloader.BACKLOG_DONE.values())
-            remaining = max(0, total_iter - total_done)
 
-            parts = []
-            if total_pending > 0:
-                parts.append(f"\U0001f4e5 {total_pending} active")
-            if remaining > 0:
-                parts.append(f"{remaining} remaining")
-
-            if parts:
-                pending_label.set_text(" · ".join(parts))
+            if total_pending > 0 and total_done > 0:
+                pending_label.set_text(
+                    f"\U0001f4e5 {total_pending} active  \u00b7  {total_done} done"
+                )
                 pending_label.style("color: var(--accent);")
+            elif total_pending > 0:
+                pending_label.set_text(f"\U0001f4e5 {total_pending} active")
+                pending_label.style("color: var(--accent);")
+            elif total_done > 0:
+                pending_label.set_text(
+                    f"\U0001f4e5 {total_done} done"
+                )
+                pending_label.style("color: var(--text-secondary);")
             else:
                 pending_label.set_text("\U0001f4e5 0 pending")
                 pending_label.style("color: var(--text-tertiary);")
