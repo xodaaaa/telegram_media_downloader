@@ -814,7 +814,7 @@ async def begin_monitor(config: dict) -> TelegramClient:
 
 
 async def check_account_premium(config: dict):
-    """Connect to Telegram and check if the account is Premium.
+    """Connect to Telegram and return account info.
 
     Parameters
     ----------
@@ -823,9 +823,10 @@ async def check_account_premium(config: dict):
 
     Returns
     -------
-    Optional[bool]
-        ``True`` if Premium, ``False`` if Free, ``None`` if unable
-        to determine.
+    dict or None
+        Dict with keys ``premium`` (bool), ``first_name`` (str),
+        ``last_name`` (str), ``username`` (str), ``photo`` (file ref or None).
+        Returns ``None`` if unable to connect.
     """
     try:
         proxy = config.get("proxy")
@@ -851,7 +852,14 @@ async def check_account_premium(config: dict):
         await client.start()
         me = await client.get_me()
         await client.disconnect()
-        return getattr(me, "premium", False) if me else None
+        if me is None:
+            return None
+        return {
+            "premium": getattr(me, "premium", False),
+            "first_name": getattr(me, "first_name", "") or "",
+            "last_name": getattr(me, "last_name", "") or "",
+            "username": getattr(me, "username", "") or "",
+        }
     except Exception:
         return None
 

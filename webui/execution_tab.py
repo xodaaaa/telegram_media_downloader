@@ -12,7 +12,7 @@ import media_downloader
 
 
 def build_execution_tab(
-    config: dict, load_config_fn, chat_inputs: list, open_media_fn, this_dir: str
+    config, load_config_fn, chat_inputs, open_media_fn, this_dir, log_area
 ):
     """Build the Execution tab panel contents.
 
@@ -23,22 +23,25 @@ def build_execution_tab(
     load_config_fn : callable
         Function to reload config from disk.
     chat_inputs : list
-        List of chat input dicts (from config tab) to update last_read after run.
+        List of chat input dicts (from config tab).
     open_media_fn : callable
         ``open_media(url, filename)`` for the preview dialog.
     this_dir : str
         Absolute path to the project root directory.
+    log_area : ui.log
+        Shared terminal log widget.
     """
     # Shared state
     is_running = {"value": False}
     is_monitoring = {"value": False}
     active_downloads = {}
-    account_premium = {"value": None}
+    account_info = {"value": None}
     total_gb_label = None
     monitor_client_ref = {"client": None}
     stop_monitoring_fn = {"fn": None}
+    empty_state_ref = {}
 
-    # Speed meter state
+    # Speed meter state (global)
     speed_byte_window = []
     last_known_bytes = {}
     speed_label = None
@@ -64,117 +67,138 @@ def build_execution_tab(
             s = compute_speed_str()
             speed_label.set_text(f"\u2b07 {s}" if s else "\u2b07 \u2014")
 
-    # Section Header + Status
+    # Section Header + Account + Status
     with ui.column().style("gap: 2px; margin-bottom: 28px;"):
         with ui.row().classes("items-center justify-between").style("width: 100%;"):
             with ui.column().style("gap: 2px;"):
                 ui.label("Execution").classes("section-title")
                 ui.label(
-                    "Start downloading or monitoring media from your configured chats."
+                    "Download or monitor media from your configured chats."
                 ).classes("section-subtitle")
-            with ui.row().style("gap: 8px; align-items: center;"):
-                premium_badge = ui.html(
-                    '<span class="status-badge status-free">\u2014 Account</span>'
+
+        # Account card
+        with ui.row().style("gap: 12px; align-items: center; margin-top: 12px;"):
+            account_avatar = (
+                ui.avatar("person", size="lg", color="primary")
+                .props("rounded")
+                .style("width: 48px; height: 48px; font-size: 22px;")
+            )
+            with ui.column().style("gap: 2px;"):
+                account_name_label = ui.label("").style(
+                    "font-size: 15px; font-weight: 600;" " color: var(--text-primary);"
                 )
-                status_label = ui.html(
-                    '<span class="status-badge status-idle">'
-                    '<span style="width:6px;height:6px;border-radius:50%;'
-                    'background:currentColor;display:inline-block;"></span>'
-                    " Idle</span>"
+                account_sub_label = ui.label("").style(
+                    "font-size: 12px; font-weight: 500;" " color: var(--text-tertiary);"
                 )
+            status_label = ui.html(
+                '<span class="status-badge status-idle">'
+                '<span style="width:6px;height:6px;border-radius:50%;'
+                'background:currentColor;display:inline-block;"></span>'
+                " Idle</span>"
+            )
+
+    def update_account_display(info):
+        if info is None:
+            account_name_label.set_text("Not connected")
+            account_sub_label.set_text("")
+            return
+        name = info.get("first_name", "")
+        last = info.get("last_name", "")
+        full = (name + " " + last).strip()
+        account_name_label.set_text(full or info.get("username", "Unknown"))
+        if info.get("premium"):
+            account_sub_label.set_text("\u2b50 Premium")
+            account_sub_label.style("color: var(--warning);")
+            account_avatar.props("color=warning")
+        else:
+            account_sub_label.set_text("Free account")
+            account_sub_label.style("color: var(--text-tertiary);")
+            account_avatar.props("color=primary")
+
+    def update_status(text, style_class):
+        dot = (
+            '<span style="width:6px;height:6px;border-radius:50%;'
+            'background:currentColor;display:inline-block;"></span>'
+        )
+        status_label.content = (
+            f'<span class="status-badge {style_class}">{dot} {text}</span>'
+        )
+
+    def update_total_gb():
+        if total_gb_label is not None:
+            total_bytes = db.get_total_downloaded_bytes()
+            total_gb_label.set_text(f"Total: {db.format_bytes(total_bytes)}")
+
+    async def check_account():
+        if account_info["value"] is None:
+            fresh = load_config_fn()
+            info = await media_downloader.check_account_premium(fresh)
+            account_info["value"] = info
+            update_account_display(info)
 
     # Metrics row (speed + pending + total GB)
     with ui.row().style("gap: 16px; margin-bottom: 20px; align-items: center;"):
         speed_label = ui.label("\u2b07 \u2014").style(
-            "font-size: 13px; font-weight: 500; color: var(--text-secondary);"
+            "font-size: 14px; font-weight: 600;"
+            " color: var(--accent); font-variant-numeric: tabular-nums;"
         )
         pending_label = ui.label("").style(
-            "font-size: 13px; font-weight: 500; color: var(--text-tertiary);"
+            "font-size: 13px; font-weight: 600; color: var(--text-secondary);"
         )
         total_gb_label = ui.label("").style(
             "font-size: 13px; font-weight: 500; color: var(--text-tertiary);"
         )
 
-    # Two-column layout
-    with ui.row().style(
-        "width: 100%; gap: 20px; align-items: flex-start; flex-wrap: wrap;"
+    # Active Downloads card
+    with ui.element("div").classes("premium-card").style(
+        "padding: 24px; margin-bottom: 16px;"
     ):
-        # Left column
-        with ui.column().style("flex: 1; min-width: 300px; gap: 16px;"):
-            # Active Downloads
-            with ui.element("div").classes("premium-card").style("padding: 24px;"):
-                with ui.row().classes("items-center").style(
-                    "gap: 10px; margin-bottom: 16px;"
-                ):
-                    ui.icon("downloading", size="sm", color="primary")
-                    ui.label("Active Downloads").style(
-                        "font-size: 15px; font-weight: 600;"
-                        " color: var(--text-primary);"
-                    )
+        with ui.row().classes("items-center").style("gap: 10px; margin-bottom: 16px;"):
+            ui.icon("downloading", size="sm", color="primary")
+            ui.label("Active Downloads").style(
+                "font-size: 15px; font-weight: 600;" " color: var(--text-primary);"
+            )
 
-                progress_container = ui.column().style(
-                    "width: 100%; gap: 8px; max-height: 320px;"
-                    " overflow-y: auto; padding-right: 4px;"
-                )
-                ui.html(
-                    '<div style="padding: 12px 0; text-align: center; '
-                    'color: var(--text-tertiary); font-size: 13px;"'
-                    ' id="empty-state">No active downloads</div>'
-                )
+        progress_container = ui.column().style(
+            "width: 100%; gap: 8px; max-height: 420px;"
+            " overflow-y: auto; padding-right: 4px;"
+        )
+        empty_state_ref["el"] = ui.label("No active downloads").style(
+            "padding: 16px 0; text-align: center;"
+            " color: var(--text-tertiary); font-size: 13px;"
+            " width: 100%;"
+        )
 
-            # Buttons
-            with ui.row().style("gap: 8px; width: 100%;"):
-                ui.button(
-                    "Start History Download",
-                    on_click=lambda: ui.timer(0.0, run_downloader, once=True),
-                    icon="play_arrow",
-                ).props('unelevated color="primary"').style(
-                    "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
-                )
-                ui.button(
-                    "Start Monitoring",
-                    on_click=lambda: ui.timer(0.0, run_monitor, once=True),
-                    icon="radar",
-                ).props('unelevated color="info"').style(
-                    "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
-                )
+    # Buttons
+    with ui.row().style("gap: 8px; width: 100%; margin-bottom: 8px;"):
+        ui.button(
+            "Start History Download",
+            on_click=lambda: ui.timer(0.0, run_downloader, once=True),
+            icon="play_arrow",
+        ).props('unelevated color="primary"').style(
+            "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
+        )
+        ui.button(
+            "Start Monitoring",
+            on_click=lambda: ui.timer(0.0, run_monitor, once=True),
+            icon="radar",
+        ).props('unelevated color="info"').style(
+            "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
+        )
 
-            with ui.row().style("gap: 8px; width: 100%;"):
-                stop_monitor_btn = (
-                    ui.button(
-                        "Stop Monitoring",
-                        on_click=lambda: stop_monitoring_fn["fn"](),
-                        icon="stop",
-                    )
-                    .props('outline color="negative"')
-                    .style(
-                        "flex: 1; height: 40px; font-size: 13px;"
-                        " font-weight: 500; display: none;"
-                    )
-                )
-
-        # Right column (Terminal always visible)
-        with ui.column().style("flex: 0 0 400px; min-width: 320px;"):
-            with ui.element("div").classes("premium-card").style(
-                "padding: 0; overflow: hidden;"
-            ):
-                with ui.row().classes("items-center").style(
-                    "gap: 10px; padding: 16px 16px 0 16px;"
-                ):
-                    ui.icon("terminal", size="sm", color="primary")
-                    ui.label("Terminal Output").style(
-                        "font-size: 15px; font-weight: 600;"
-                        " color: var(--text-primary);"
-                    )
-                log_area = (
-                    ui.log(max_lines=300)
-                    .classes("terminal-log")
-                    .style(
-                        "width: 100%; height: 480px; min-height: 480px;"
-                        " max-height: 480px; padding: 16px; font-size: 13px;"
-                        " line-height: 1.7; overflow-y: auto;"
-                    )
-                )
+    with ui.row().style("gap: 8px; width: 100%;"):
+        stop_monitor_btn = (
+            ui.button(
+                "Stop Monitoring",
+                on_click=lambda: stop_monitoring_fn["fn"](),
+                icon="stop",
+            )
+            .props('outline color="negative"')
+            .style(
+                "flex: 1; height: 40px; font-size: 13px;"
+                " font-weight: 500; display: none;"
+            )
+        )
 
     # Custom logging handler
     class UILogHandler(logging.Handler):
@@ -188,43 +212,18 @@ def build_execution_tab(
     ui_logger = UILogHandler()
     ui_logger.setFormatter(logging.Formatter("%(message)s"))
 
-    def update_status(text, style_class):
-        dot = (
-            '<span style="width:6px;height:6px;border-radius:50%;'
-            'background:currentColor;display:inline-block;"></span>'
-        )
-        status_label.content = (
-            f'<span class="status-badge {style_class}">{dot} {text}</span>'
-        )
+    def _hide_empty_state():
+        if "el" in empty_state_ref:
+            empty_state_ref["el"].style("display: none;")
 
-    def update_premium_badge(premium):
-        if premium is True:
-            premium_badge.content = (
-                '<span class="status-badge status-premium">\u2b50 Premium</span>'
-            )
-        elif premium is False:
-            premium_badge.content = '<span class="status-badge status-free">Free</span>'
-        else:
-            premium_badge.content = (
-                '<span class="status-badge status-free">\u2014 Account</span>'
-            )
-
-    def update_total_gb():
-        if total_gb_label is not None:
-            total_bytes = db.get_total_downloaded_bytes()
-            total_gb_label.set_text(f"Total: {db.format_bytes(total_bytes)}")
-
-    async def check_premium():
-        if account_premium["value"] is None:
-            fresh = load_config_fn()
-            premium = await media_downloader.check_account_premium(fresh)
-            account_premium["value"] = premium
-            update_premium_badge(premium)
+    def _show_empty_state():
+        if "el" in empty_state_ref:
+            empty_state_ref["el"].style("")
 
     def ui_progress_hook(desc, current, total, file_path=None, media_type=None):
         nonlocal speed_byte_window, last_known_bytes
 
-        # Speed tracking
+        # Global speed tracking
         now = time.monotonic()
         prev = last_known_bytes.get(desc, 0)
         if current >= prev:
@@ -237,56 +236,92 @@ def build_execution_tab(
             del last_known_bytes[desc]
 
         if desc not in active_downloads:
+            _hide_empty_state()
             with progress_container:
                 row = (
                     ui.row()
                     .classes("dl-row")
-                    .style("width: 100%; align-items: center; gap: 12px;")
+                    .style("width: 100%; align-items: center; gap: 10px;")
                 )
                 with row:
                     name_label = ui.label(desc).style(
                         "font-size: 13px; font-weight: 500;"
                         " color: var(--text-secondary);"
                         " white-space: nowrap; overflow: hidden;"
-                        " text-overflow: ellipsis; width: 35%;"
+                        " text-overflow: ellipsis; flex: 1; min-width: 0;"
                     )
                     bar = (
                         ui.linear_progress(value=0, show_value=False)
                         .props("instant-feedback color=primary size=6px rounded")
-                        .style("width: 30%; border-radius: 3px;")
+                        .style("width: 120px; border-radius: 3px;")
                     )
-                    pct_label = ui.label("0%").style(
+                    info_label = ui.label("").style(
                         "font-size: 12px; font-weight: 500;"
-                        " color: var(--text-tertiary); text-align: center;"
-                        " width: 20%; font-variant-numeric: tabular-nums;"
+                        " color: var(--text-tertiary);"
+                        " white-space: nowrap;"
+                        " font-variant-numeric: tabular-nums;"
                     )
                     action_col = ui.column().style(
-                        "width: 10%; min-width: 50px; align-items: flex-end;"
+                        "min-width: 40px; align-items: flex-end;"
                     )
                 active_downloads[desc] = (
                     row,
                     name_label,
                     bar,
-                    pct_label,
+                    info_label,
                     action_col,
+                    now,  # start_time
+                    0,  # last_bytes for ETA
                 )
 
-        row, name_label, bar, pct_label, action_col = active_downloads[desc]
+        (
+            row,
+            name_label,
+            bar,
+            info_label,
+            action_col,
+            start_time,
+            last_eta_bytes,
+        ) = active_downloads[desc]
+
         if total > 0:
             fraction = current / total
             bar.set_value(fraction)
-            pct_label.set_text(
-                f"{current / 1024 / 1024:.1f}M / {total / 1024 / 1024:.1f}M "
-                f"({fraction * 100:.1f}%)"
-            )
+
+            # ETA calculation
+            elapsed = now - start_time
+            if elapsed > 0.5 and current > 0:
+                file_speed = current / elapsed
+                remaining = total - current
+                eta_sec = remaining / file_speed if file_speed > 0 else 0
+                if eta_sec > 3600:
+                    eta_str = f"{eta_sec / 3600:.1f}h left"
+                elif eta_sec > 60:
+                    eta_str = f"{eta_sec / 60:.0f}m left"
+                elif eta_sec > 0:
+                    eta_str = f"{eta_sec:.0f}s left"
+                else:
+                    eta_str = ""
+            else:
+                eta_str = ""
+
+            pct_str = f"{fraction * 100:.0f}%"
+            info_text = pct_str
+            if eta_str:
+                info_text += f" \u00b7 {eta_str}"
+            info_label.set_text(info_text)
+
             if current >= total:
                 name_label.style(
-                    "font-size: 13px; font-weight: 600; color: var(--positive);"
+                    "font-size: 13px; font-weight: 600;"
+                    " color: var(--positive);"
                     " white-space: nowrap; overflow: hidden;"
-                    " text-overflow: ellipsis; width: 35%;"
+                    " text-overflow: ellipsis; flex: 1; min-width: 0;"
                 )
                 if desc.startswith("Downloading "):
                     name_label.set_text(desc.replace("Downloading ", "\u2713 ", 1))
+                info_label.set_text("Done")
+                info_label.style("color: var(--positive);")
 
                 if file_path and not getattr(row, "has_open_btn", False):
                     row.has_open_btn = True
@@ -317,9 +352,19 @@ def build_execution_tab(
                             ).props('flat dense color="primary" size="sm"').style(
                                 "font-size: 12px;"
                             )
+
+            active_downloads[desc] = (
+                row,
+                name_label,
+                bar,
+                info_label,
+                action_col,
+                start_time,
+                current,
+            )
         else:
             bar.set_value(0)
-            pct_label.set_text(f"{current} bytes")
+            info_label.set_text("...")
 
     async def run_downloader():
         if is_running["value"]:
@@ -334,6 +379,7 @@ def build_execution_tab(
             active_downloads.clear()
             speed_byte_window.clear()
             last_known_bytes.clear()
+            _show_empty_state()
             update_status("Running", "status-running")
             ui.notify("Initializing Telegram Client...", type="info")
             media_downloader.UI_PROGRESS_HOOK = ui_progress_hook
@@ -375,6 +421,7 @@ def build_execution_tab(
             media_downloader.UI_PROGRESS_HOOK = None
             is_running["value"] = False
             main_logger.removeHandler(ui_logger)
+            _show_empty_state()
             update_total_gb()
 
     async def run_monitor():
@@ -390,6 +437,7 @@ def build_execution_tab(
             active_downloads.clear()
             speed_byte_window.clear()
             last_known_bytes.clear()
+            _show_empty_state()
             update_status("Monitoring", "status-monitoring")
             ui.notify("Starting monitor mode...", type="info")
             media_downloader.UI_PROGRESS_HOOK = ui_progress_hook
@@ -437,12 +485,13 @@ def build_execution_tab(
             total = sum(media_downloader.PENDING_IDS.values())
             if total > 0:
                 pending_label.set_text(f"\U0001f4e5 {total} pending")
+                pending_label.style("color: var(--accent);")
             else:
                 pending_label.set_text("")
 
     ui.timer(0.5, update_pending)
     ui.timer(1.0, update_total_gb)
 
-    # Check premium status on load
-    ui.timer(0.3, check_premium, once=True)
+    # Check account info on load
+    ui.timer(0.3, check_account, once=True)
     update_total_gb()
