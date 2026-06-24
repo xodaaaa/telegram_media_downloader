@@ -11,8 +11,6 @@ from typing import List, Optional, Tuple, Union
 from rich.logging import RichHandler
 from telethon import TelegramClient, events
 from telethon.errors import FileReferenceExpiredError
-from telethon.errors.rpcerrorlist import FileMigrateError
-from telethon.network import ConnectionError as TelethonConnectionError
 from telethon.tl.types import (
     Document,
     Message,
@@ -441,21 +439,21 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                     message.id,
                 )
                 FAILED_IDS[chat_id].append(message.id)
-        except TelethonConnectionError:
-            logger.info(
-                "Message[%d]: download interrupted (connection closed).",
-                message.id,
-            )
-            FAILED_IDS[chat_id].append(message.id)
-            break
         except Exception as e:
-            logger.error(
-                "Message[%d]: could not be downloaded due to following "
-                "exception:\n[%s].",
-                message.id,
-                e,
-                exc_info=True,
-            )
+            msg = str(e)
+            if "disconnected" in msg.lower() or "connection" in msg.lower():
+                logger.info(
+                    "Message[%d]: download interrupted (connection closed).",
+                    message.id,
+                )
+            else:
+                logger.error(
+                    "Message[%d]: could not be downloaded due to "
+                    "following exception:\n[%s].",
+                    message.id,
+                    e,
+                    exc_info=True,
+                )
             FAILED_IDS[chat_id].append(message.id)
             break
     return message.id
