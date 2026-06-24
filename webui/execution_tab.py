@@ -28,8 +28,9 @@ def build_execution_tab(
         ``open_media(url, filename)`` for the preview dialog.
     this_dir : str
         Absolute path to the project root directory.
-    log_area : ui.log
-        Shared terminal log widget.
+    log_area : dict
+        Holder dict with key ``"widget"`` pointing to the shared
+        ``ui.log`` terminal widget.
     """
     # Shared state
     is_running = {"value": False}
@@ -205,7 +206,11 @@ def build_execution_tab(
         def emit(self, record):
             try:
                 msg = self.format(record)
-                log_area.push(msg)
+                widget = (
+                    log_area.get("widget") if isinstance(log_area, dict) else log_area
+                )
+                if widget is not None:
+                    widget.push(msg)
             except Exception:
                 pass
 
