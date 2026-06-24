@@ -40,9 +40,11 @@ class TestGetTotalDownloadedBytes(unittest.TestCase):
 
     def setUp(self):
         db._db_initialized = False
-        import tempfile
 
-        self._db_file = tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite3")
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self._db_file = tempfile.NamedTemporaryFile(
+            delete=False, suffix=".sqlite3", dir=self._tmpdir.name
+        )
         self._db_file.close()
         self._db_path = self._db_file.name
         self._patcher = __import__("unittest").mock.patch("db.DB_PATH", self._db_path)
@@ -50,13 +52,12 @@ class TestGetTotalDownloadedBytes(unittest.TestCase):
 
     def tearDown(self):
         self._patcher.stop()
-        import os
-
         if os.path.exists(self._db_path):
             try:
                 os.remove(self._db_path)
             except OSError:
                 pass
+        self._tmpdir.cleanup()
 
     def test_empty_db_returns_zero(self):
         self.assertEqual(db.get_total_downloaded_bytes(), 0)
@@ -75,7 +76,10 @@ class TestDB(unittest.TestCase):
         # Reset initialized flag for fresh testing
         db._db_initialized = False
         # Create a unique temporary file for this test
-        self.test_db_file = tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite3")
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.test_db_file = tempfile.NamedTemporaryFile(
+            delete=False, suffix=".sqlite3", dir=self._tmpdir.name
+        )
         self.test_db_file.close()  # Close it so SQLite can open it
         self.test_db_path = self.test_db_file.name
 
@@ -92,6 +96,7 @@ class TestDB(unittest.TestCase):
             except OSError:
                 # On Windows, it might still be locked briefly
                 pass
+        self._tmpdir.cleanup()
 
     def test_init_db(self):
         """Verify that init_db creates the table and index."""

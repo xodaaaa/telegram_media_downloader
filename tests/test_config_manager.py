@@ -15,7 +15,10 @@ class ConfigManagerTestCase(unittest.TestCase):
 
     def setUp(self):
         """Create a temporary config file for each test."""
-        self._tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False)
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self._tmp = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".yaml", delete=False, dir=self._tmpdir.name
+        )
         self._tmp.close()
         self._orig_path = config_manager.CONFIG_PATH
         config_manager.CONFIG_PATH = self._tmp.name
@@ -26,6 +29,7 @@ class ConfigManagerTestCase(unittest.TestCase):
             os.unlink(self._tmp.name)
         except OSError:
             pass
+        self._tmpdir.cleanup()
 
     # ── load_config ──
 
