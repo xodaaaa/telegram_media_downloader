@@ -39,6 +39,7 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):
             total_label.set_text(f"Total downloaded: {db.format_bytes(total_bytes)}")
 
         _refresh_total()
+        ui.timer(2.0, _refresh_total)
 
         # ── Filters Row ──
         with ui.row().style(
