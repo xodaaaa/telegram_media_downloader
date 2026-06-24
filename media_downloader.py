@@ -666,8 +666,12 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
             chat_id, ids=ids_to_retry
         )
         for message in skipped_messages:
+            if message is None:
+                continue
             pagination_count += 1
             messages_list.append(message)
+        # Remove deleted messages from ids_to_retry
+        chat_conf["ids_to_retry"] = [m.id for m in skipped_messages if m is not None]
 
     async for message in messages_iter:  # type: ignore
         BACKLOG_ITERATED[chat_id] = BACKLOG_ITERATED.get(chat_id, 0) + 1
