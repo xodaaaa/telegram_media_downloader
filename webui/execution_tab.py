@@ -125,8 +125,7 @@ def build_execution_tab(
             )
 
         progress_container = ui.column().style(
-            "width: 100%; gap: 8px; max-height: 340px;"
-            " overflow-y: auto; padding-right: 4px;"
+            "width: 100%; gap: 8px; padding-right: 4px;"
         )
         empty_state_ref["el"] = ui.label("No active downloads").style(
             "padding: 16px 0; text-align: center;"
@@ -136,19 +135,23 @@ def build_execution_tab(
 
     # Buttons
     with ui.row().style("gap: 8px; width: 100%; margin-bottom: 8px;"):
-        ui.button(
-            "Start History Download",
-            on_click=lambda: ui.timer(0.0, run_downloader, once=True),
-            icon="play_arrow",
-        ).props('unelevated color="primary"').style(
-            "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
+        history_btn = (
+            ui.button(
+                "Start History Download",
+                on_click=lambda: ui.timer(0.0, run_downloader, once=True),
+                icon="play_arrow",
+            )
+            .props('unelevated color="primary"')
+            .style("flex: 1; height: 48px; font-size: 14px; font-weight: 600;")
         )
-        ui.button(
-            "Start Monitoring",
-            on_click=lambda: ui.timer(0.0, run_monitor, once=True),
-            icon="radar",
-        ).props('unelevated color="info"').style(
-            "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
+        monitor_btn = (
+            ui.button(
+                "Start Monitoring",
+                on_click=lambda: ui.timer(0.0, run_monitor, once=True),
+                icon="radar",
+            )
+            .props('unelevated color="info"')
+            .style("flex: 1; height: 48px; font-size: 14px; font-weight: 600;")
         )
 
     with ui.row().style("gap: 8px; width: 100%;"):
@@ -244,6 +247,29 @@ def build_execution_tab(
                     0,
                 )
                 download_order.append(desc)
+                # Max 4 visible: hide oldest completed first
+                visible = [
+                    d
+                    for d in download_order
+                    if d in active_downloads
+                    and "display: none"
+                    not in (active_downloads[d][0].style().get("display") or "")
+                ]
+                while len(visible) > 4:
+                    removed = None
+                    for d in visible:
+                        r = active_downloads[d][0]
+                        if "order: 1" in (r.style().get("") or ""):
+                            removed = d
+                            break
+                    if removed is None and visible:
+                        removed = visible[0]
+                    if removed:
+                        try:
+                            active_downloads[removed][0].style("display: none;")
+                        except Exception:
+                            pass
+                        visible.remove(removed)
 
         (
             row,
@@ -343,6 +369,8 @@ def build_execution_tab(
             ui.notify("Downloader is already running!", type="warning")
             return
         is_running["value"] = True
+        history_btn.props('unelevated color="primary" disabled')
+        monitor_btn.props('unelevated color="info" disabled')
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -396,12 +424,16 @@ def build_execution_tab(
             main_logger.removeHandler(ui_logger)
             _show_empty_state()
             update_total_gb()
+            history_btn.props('unelevated color="primary"')
+            monitor_btn.props('unelevated color="info"')
 
     async def run_monitor():
         if is_monitoring["value"]:
             ui.notify("Monitor is already running!", type="warning")
             return
         is_monitoring["value"] = True
+        history_btn.props('unelevated color="primary" disabled')
+        monitor_btn.props('unelevated color="info" disabled')
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -430,6 +462,8 @@ def build_execution_tab(
             _log_widget().push(f"Error: {str(e)}")
             ui.notify(f"Error: {str(e)}", type="negative", position="top")
             main_logger.removeHandler(ui_logger)
+            history_btn.props('unelevated color="primary"')
+            monitor_btn.props('unelevated color="info"')
 
     async def stop_monitoring():
         if monitor_client_ref["client"] is not None:
@@ -442,6 +476,8 @@ def build_execution_tab(
         stop_monitor_btn.style("display: none;")
         update_status("Idle", "status-idle")
         media_downloader.UI_PROGRESS_HOOK = None
+        history_btn.props('unelevated color="primary"')
+        monitor_btn.props('unelevated color="info"')
         main_logger = logging.getLogger("media_downloader")
         try:
             main_logger.removeHandler(ui_logger)
