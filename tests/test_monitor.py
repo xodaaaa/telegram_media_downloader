@@ -305,7 +305,7 @@ class TestMainMonitorMode(unittest.TestCase):
         patches.append(p_upd)
 
         p_cfu = mock.patch("media_downloader.check_for_updates")
-        mock_cfu = p_cfu.start()
+        p_cfu.start()
         patches.append(p_cfu)
 
         return mock_bi, mock_bm, mock_upd, mock_client, patches
@@ -368,7 +368,7 @@ class TestMainMonitorMode(unittest.TestCase):
             self._teardown_mocks(patches)
 
     def test_mode_monitor_keyboard_interrupt(self):
-        mock_bi, mock_bm, mock_upd, mock_client, patches = self._setup_mocks(
+        _, mock_bm, mock_upd, mock_client, patches = self._setup_mocks(
             {
                 "api_id": 1,
                 "api_hash": "h",

@@ -30,6 +30,7 @@ from webui.tour import build_tour
 
 logger = logging.getLogger("webui")
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_PADDING_0 = _PADDING_0
 
 # Suppress Telethon connection cleanup noise on Python 3.13
 logging.getLogger("telethon").setLevel(logging.WARNING)
@@ -253,10 +254,10 @@ def index():  # NOSONAR
                 "background: transparent; padding: 0; margin: 0;"
             ).props("animated") as tab_panels:
 
-                with ui.tab_panel("config").style("padding: 0;"):
-                    global_inputs, chat_inputs = build_config_tab(config, save_config)
+                with ui.tab_panel("config").style(_PADDING_0):
+                    _global_inputs, chat_inputs = build_config_tab(config, save_config)
 
-                with ui.tab_panel("execution").style("padding: 0;"):
+                with ui.tab_panel("execution").style(_PADDING_0):
                     build_execution_tab(
                         config,
                         load_config,
@@ -266,10 +267,10 @@ def index():  # NOSONAR
                         log_area_holder,
                     )
 
-                with ui.tab_panel("history").style("padding: 0;"):
+                with ui.tab_panel("history").style(_PADDING_0):
                     build_history_tab(config, open_media, THIS_DIR)
 
-                with ui.tab_panel("terminal").style("padding: 0;"):
+                with ui.tab_panel("terminal").style(_PADDING_0):
                     with ui.column().style(
                         "gap: 2px; margin-bottom: 28px; align-items: center;"
                     ):

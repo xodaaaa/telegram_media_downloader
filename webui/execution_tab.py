@@ -10,6 +10,8 @@ from nicegui import ui
 import db
 import media_downloader
 
+_DISPLAY_NONE = _DISPLAY_NONE
+
 
 def build_execution_tab(  # NOSONAR
     config, load_config_fn, chat_inputs, open_media_fn, this_dir, log_area
@@ -143,7 +145,7 @@ def build_execution_tab(  # NOSONAR
         with ui.row().classes("items-center").style("gap: 10px; margin-bottom: 16px;"):
             ui.icon("downloading", size="sm", color="primary")
             ui.label("Active Downloads").style(
-                "font-size: 15px; font-weight: 600;" " color: var(--text-primary);"
+                "font-size: 15px; font-weight: 600; color: var(--text-primary);"
             )
 
         progress_container = ui.column().style(
@@ -159,7 +161,7 @@ def build_execution_tab(  # NOSONAR
         if "el" in empty_state_ref:
             has_visible = any(entry[7] for entry in active_downloads.values())
             if has_visible:
-                empty_state_ref["el"].style("display: none;")
+                empty_state_ref["el"].style(_DISPLAY_NONE)
             else:
                 empty_state_ref["el"].style("")
 
@@ -310,7 +312,7 @@ def build_execution_tab(  # NOSONAR
                                 break
                     if removed:
                         try:
-                            active_downloads[removed][0].style("display: none;")
+                            active_downloads[removed][0].style(_DISPLAY_NONE)
                         except Exception:
                             pass
                         active_downloads[removed][7] = False
@@ -470,7 +472,7 @@ def build_execution_tab(  # NOSONAR
                     ui.notify("Switching to monitor mode...", type="info")
                     switched_to_monitor = True
                     is_running["value"] = False
-                    stop_dl_btn.style("display: none;")
+                    stop_dl_btn.style(_DISPLAY_NONE)
                     download_client_ref["client"] = None
                     await run_monitor()
                     return
@@ -483,7 +485,7 @@ def build_execution_tab(  # NOSONAR
                 media_downloader.UI_PROGRESS_HOOK = None
                 is_running["value"] = False
                 main_logger.removeHandler(ui_logger)
-                stop_dl_btn.style("display: none;")
+                stop_dl_btn.style(_DISPLAY_NONE)
                 download_client_ref["client"] = None
                 _update_empty_state()
             # Save progress even on error/stop
@@ -545,7 +547,7 @@ def build_execution_tab(  # NOSONAR
                 pass
             monitor_client_ref["client"] = None
         is_monitoring["value"] = False
-        stop_btn.style("display: none;")
+        stop_btn.style(_DISPLAY_NONE)
         update_status("Idle", "status-idle")
         media_downloader.UI_PROGRESS_HOOK = None
         main_logger = logging.getLogger("media_downloader")

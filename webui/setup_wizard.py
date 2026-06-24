@@ -94,7 +94,7 @@ def build_setup_wizard(  # NOSONAR
 
         # Progress indicators
         with ui.row().style(
-            "gap: 12px; justify-content: center;" " padding: 12px 24px 0 24px;"
+            "gap: 12px; justify-content: center; padding: 12px 24px 0 24px;"
         ):
             for n in range(1, total_steps + 1):
                 active = wizard_state["step"] == n

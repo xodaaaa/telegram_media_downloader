@@ -2,6 +2,8 @@
 
 from nicegui import ui
 
+_OUTLINED_DENSE = "outlined dense"
+
 
 def build_config_tab(config: dict, save_config_fn):  # NOSONAR
     """Build the Configuration tab panel contents.
@@ -51,7 +53,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
             global_inputs["api_id"] = (
                 ui.number("API ID", value=api_id_val, format="%.0f")
                 .classes("col")
-                .props("outlined dense")
+                .props(_OUTLINED_DENSE)
             )
             api_hash_val = config.get("api_hash", "")
             global_inputs["api_hash"] = (
@@ -62,7 +64,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                     password_toggle_button=True,
                 )
                 .classes("col")
-                .props("outlined dense")
+                .props(_OUTLINED_DENSE)
             )
 
     # ── Download Settings Card ──
@@ -107,7 +109,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                     format="%.0f",
                 )
                 .classes("col")
-                .props("outlined dense")
+                .props(_OUTLINED_DENSE)
             )
 
         with ui.row().style("gap: 16px; width: 100%; margin-bottom: 16px;"):
@@ -118,7 +120,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                     format="%.0f",
                 )
                 .classes("col")
-                .props("outlined dense")
+                .props(_OUTLINED_DENSE)
             )
             delay_val = config.get("download_delay")
             if isinstance(delay_val, list):
@@ -235,7 +237,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                 value=str(chat_data.get("chat_id", "")),
                             )
                             .classes("col")
-                            .props("outlined dense")
+                            .props(_OUTLINED_DENSE)
                         )
                         c_inputs["last_read"] = (
                             ui.number(
@@ -244,7 +246,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                 format="%.0f",
                             )
                             .style("max-width: 180px;")
-                            .props("outlined dense")
+                            .props(_OUTLINED_DENSE)
                         )
 
                         def remove_me(card=chat_card, inputs=c_inputs):
@@ -275,7 +277,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                             ),
                                         )
                                         .classes("col")
-                                        .props("outlined dense")
+                                        .props(_OUTLINED_DENSE)
                                     )
                                     c_inputs["max_concurrent"] = (
                                         ui.number(
@@ -319,7 +321,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                             value=chat_data.get("start_date", ""),
                                         )
                                         .classes("col")
-                                        .props("outlined dense")
+                                        .props(_OUTLINED_DENSE)
                                     )
                                     c_inputs["end_date"] = (
                                         ui.input(
@@ -327,7 +329,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                             value=chat_data.get("end_date", ""),
                                         )
                                         .classes("col")
-                                        .props("outlined dense")
+                                        .props(_OUTLINED_DENSE)
                                     )
                                     c_inputs["max_messages"] = (
                                         ui.number(
@@ -336,7 +338,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                             format="%.0f",
                                         )
                                         .classes("col")
-                                        .props("outlined dense")
+                                        .props(_OUTLINED_DENSE)
                                     )
 
                             ui.separator().style("opacity: 0.5")

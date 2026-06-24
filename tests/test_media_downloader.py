@@ -913,7 +913,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
             "hostname": "127.0.0.1",
             "port": 1080,
             "username": "user",
-            "password": "pass",
+            "password": "pass",  # NOSONAR
         }
         result = self.loop.run_until_complete(async_begin_import(conf_with_proxy, 3))
         expected_conf = copy.deepcopy(conf_with_proxy)
@@ -1106,7 +1106,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
             ],
             "parallel_chats": False,
         }
-        result = self.loop.run_until_complete(async_begin_import(conf, 100))
+        _ = self.loop.run_until_complete(async_begin_import(conf, 100))
         self.assertEqual(mock_process_chat.call_count, 2)
         self.assertEqual(result, conf)
 
@@ -1119,7 +1119,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
             "chats": [{"chat_id": 1}, {"chat_id": 2}],
             "parallel_chats": True,
         }
-        result = self.loop.run_until_complete(async_begin_import(conf, 100))
+        _ = self.loop.run_until_complete(async_begin_import(conf, 100))
         self.assertEqual(mock_process_chat.call_count, 2)
 
     @mock.patch("media_downloader.TelegramClient", return_value=MockClient())

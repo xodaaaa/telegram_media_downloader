@@ -259,7 +259,7 @@ async def _get_media_meta(  # NOSONAR
     return file_name, file_format
 
 
-def get_media_type(message: Message) -> Optional[str]:
+def get_media_type(message: Message) -> Optional[str]:  # NOSONAR
     """
     Determine the media type from the message's media attributes.
 

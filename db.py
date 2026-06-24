@@ -176,7 +176,7 @@ def get_recent_downloads(
             order_col = valid_sort_cols.get(sort_by, "download_timestamp")
             order_dir = "DESC" if sort_desc else "ASC"
 
-            query = f"""
+            query = """
                 SELECT id, chat_id, message_id, file_name, file_size, download_timestamp, file_path, media_type
                 FROM download_history
                 WHERE 1=1

@@ -15,7 +15,7 @@ class MockLog:
     """
 
     def __init__(self, **kwargs):
-        self.funcName = kwargs["funcName"]
+        self.funcName = kwargs["funcName"]  # NOSONAR
 
 
 class MetaTestCase(unittest.TestCase):

@@ -7,6 +7,8 @@ from nicegui import ui
 
 import db
 
+_FONT_13 = _FONT_13
+
 
 def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
     """Build the History tab panel contents.
@@ -65,12 +67,12 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
 
             ui.button("Search", on_click=lambda: load_history(), icon="search").props(
                 'unelevated dense color="primary"'
-            ).style("font-size: 13px;")
+            ).style(_FONT_13)
             ui.button(
                 "Refresh",
                 on_click=lambda: load_history(),
                 icon="refresh",
-            ).props("flat dense color=grey-7").style("font-size: 13px;")
+            ).props("flat dense color=grey-7").style(_FONT_13)
 
             def clear_history():
                 db.reset_history()
@@ -81,7 +83,7 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
                 "Clear All",
                 on_click=clear_history,
                 icon="delete_outline",
-            ).props("flat dense color=negative").style("font-size: 13px;")
+            ).props("flat dense color=negative").style(_FONT_13)
 
         # ── Table ──
         columns = [
