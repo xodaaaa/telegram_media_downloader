@@ -549,8 +549,11 @@ async def process_messages(  # pylint: disable=too-many-positional-arguments
     async def _download_with_limit(message: Message) -> int:
         async with semaphore:
             delay = _resolve_download_delay(download_delay)
-            if delay is not None and delay > 0:
-                logger.info("Waiting %.1fs before next download...", delay)
+            if delay is not None:
+                if delay > 0:
+                    logger.info(
+                        "Waiting %.1fs before next download...", delay
+                    )
                 await asyncio.sleep(delay)
             PENDING_IDS[chat_id] = PENDING_IDS.get(chat_id, 0) + 1
             msg_id = int(
@@ -787,8 +790,12 @@ async def register_monitor_handler(
         try:
             async with semaphore:
                 delay = _resolve_download_delay(download_delay)
-                if delay is not None and delay > 0:
-                    logger.info("Waiting %.1fs before next download...", delay)
+                if delay is not None:
+                    if delay > 0:
+                        logger.info(
+                            "Waiting %.1fs before next download...",
+                            delay,
+                        )
                     await asyncio.sleep(delay)
                 await download_media(
                     client,
