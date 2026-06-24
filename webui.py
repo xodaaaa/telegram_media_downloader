@@ -30,7 +30,7 @@ from webui.tour import build_tour
 
 logger = logging.getLogger("webui")
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-_PADDING_0 = _PADDING_0
+_PADDING_0 = "padding: 0;"
 
 # Suppress Telethon connection cleanup noise on Python 3.13
 logging.getLogger("telethon").setLevel(logging.WARNING)

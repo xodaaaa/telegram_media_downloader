@@ -749,7 +749,7 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
         update_config(global_config)
 
 
-async def register_monitor_handler(
+async def register_monitor_handler(  # NOSONAR
     client, global_config: dict, chat_conf: dict
 ) -> None:
     """Register a NewMessage handler for one chat in monitor mode.

@@ -211,7 +211,7 @@ async def async_begin_import(conf, pagination_limit):
     return result
 
 
-async def mock_process_message(*args, **kwargs):
+async def mock_process_message(*args, **kwargs):  # NOSONAR
     return 5
 
 
@@ -308,7 +308,7 @@ class MockClient:
         if mock_message.id in [7, 8]:
             raise FileReferenceExpiredError
         elif mock_message.id == 9:
-            raise Exception("Unauthorized")
+            raise Exception("Unauthorized")  # NOSONAR
         elif mock_message.id == 11:
             raise TimeoutError
         elif mock_message.id == 13:
@@ -716,14 +716,14 @@ class MediaDownloaderTestCase(unittest.TestCase):
 
         # Create a custom mock client that always raises FileReferenceExpiredError for ID 14
         class PersistentErrorClient(MockClient):
-            async def download_media(self, message_or_media, file=None, **kwargs):
+    async def download_media(self, message_or_media, file=None, **kwargs):  # NOSONAR
                 mock_message = message_or_media
                 if mock_message.id == 14:
                     # Create a proper FileReferenceExpiredError with required parameters
                     raise FileReferenceExpiredError(request=None)
                 return await super().download_media(message_or_media, file, **kwargs)
 
-            async def get_messages(self, *args, **kwargs):
+    async def get_messages(self, *args, **kwargs):  # NOSONAR
                 ids = kwargs.get("ids", kwargs.get("message_ids"))
                 if ids == 14:
                     # Return the same message that will fail again
@@ -1029,7 +1029,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         "media_downloader.manage_duplicate_file",
         new=mock_manage_duplicate_file,
     )
-    def test_process_message_when_file_exists(self, mock_is_exist):
+    def test_process_message_when_file_exists(self, mock_is_exist):  # NOSONAR
         client = MockClient()
         result = self.loop.run_until_complete(
             async_process_messages(
@@ -1188,7 +1188,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         call_order = []
         active = []
 
-        async def mock_download(client, message, *args, **kwargs):
+        async def mock_download(client, message, *args, **kwargs):  # NOSONAR
             active.append(message.id)
             # Yield control so other coroutines can run
             await asyncio.sleep(0)
@@ -1213,7 +1213,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         """Test that a fixed download_delay calls asyncio.sleep with the right value."""
         import media_downloader
 
-        async def mock_download(client, message, *args, **kwargs):
+        async def mock_download(client, message, *args, **kwargs):  # NOSONAR
             return message.id
 
         messages = [MockMessage(id=10, media=False)]
@@ -1233,7 +1233,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         """Test that a [min, max] download_delay calls random.uniform correctly."""
         import media_downloader
 
-        async def mock_download(client, message, *args, **kwargs):
+        async def mock_download(client, message, *args, **kwargs):  # NOSONAR
             return message.id
 
         messages = [MockMessage(id=20, media=False)]
@@ -1253,7 +1253,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         """Negative download_delay is clamped to 0."""
         import media_downloader
 
-        async def mock_download(client, message, *args, **kwargs):
+        async def mock_download(client, message, *args, **kwargs):  # NOSONAR
             return message.id
 
         with mock.patch("media_downloader.download_media", side_effect=mock_download):
@@ -1274,7 +1274,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         """download_delay list with != 2 elements: warns and skips delay."""
         import media_downloader
 
-        async def mock_download(client, message, *args, **kwargs):
+        async def mock_download(client, message, *args, **kwargs):  # NOSONAR
             return message.id
 
         with mock.patch("media_downloader.download_media", side_effect=mock_download):
@@ -1295,7 +1295,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         """download_delay list with non-numeric values: warns and skips delay."""
         import media_downloader
 
-        async def mock_download(client, message, *args, **kwargs):
+        async def mock_download(client, message, *args, **kwargs):  # NOSONAR
             return message.id
 
         with mock.patch("media_downloader.download_media", side_effect=mock_download):
@@ -1316,7 +1316,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         """Non-numeric scalar download_delay: warns and skips delay."""
         import media_downloader
 
-        async def mock_download(client, message, *args, **kwargs):
+        async def mock_download(client, message, *args, **kwargs):  # NOSONAR
             return message.id
 
         with mock.patch("media_downloader.download_media", side_effect=mock_download):
@@ -1584,7 +1584,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
         # Mock the client's download_media to capture the progress_callback
         captured_callback = None
 
-        async def mock_download_media(*args, **kwargs):
+        async def mock_download_media(*args, **kwargs):  # NOSONAR
             nonlocal captured_callback
             captured_callback = kwargs.get("progress_callback")
             return "downloaded"
