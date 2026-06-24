@@ -21,10 +21,18 @@ def build_setup_wizard(
     start_step : int
         1 = full wizard, 2 = phone only, 3 = chat only.
     """
+    def _safe_int(v):
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return 0
+
     wizard_state = {
         "step": start_step,
-        "api_id": config.get("api_id"),
-        "api_hash": config.get("api_hash", ""),
+        "api_id": _safe_int(config.get("api_id")),
+        "api_hash": config.get("api_hash", "")
+        if isinstance(config.get("api_hash"), str)
+        else "",
         "phone": config.get("phone", ""),
         "client": None,
         "phone_code_hash": "",
@@ -130,7 +138,11 @@ def build_setup_wizard(
                 "font-size: 13px; color: var(--text-secondary);" " line-height: 1.6;"
             )
             api_id_in = (
-                ui.number("API ID", value=wizard_state["api_id"] or 0, format="%.0f")
+                ui.number(
+                    "API ID",
+                    value=wizard_state["api_id"] if wizard_state["api_id"] else None,
+                    format="%.0f",
+                )
                 .classes("w-full")
                 .props("outlined dense")
             )
@@ -157,7 +169,7 @@ def build_setup_wizard(
 
     def _go_step1(api_id_val, api_hash_val):
         try:
-            api_id_int = int(api_id_val) if api_id_val else 0
+            api_id_int = int(api_id_val) if api_id_val is not None else 0
         except (TypeError, ValueError):
             api_id_int = 0
         if not api_id_int or not str(api_hash_val).strip():
