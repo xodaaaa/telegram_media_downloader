@@ -3,7 +3,7 @@
 import glob
 import os
 import pathlib
-from hashlib import md5
+from hashlib import sha256
 
 
 def get_next_name(file_path: str) -> str:
@@ -42,8 +42,8 @@ def get_next_name(file_path: str) -> str:
 
 
 def _file_md5(file_path: str) -> str:
-    """Compute the MD5 hash of a file without leaking the file descriptor."""
-    hasher = md5()
+    """Compute the SHA-256 hash of a file without leaking the file descriptor."""
+    hasher = sha256()
     with open(file_path, "rb") as f:
         for chunk in iter(lambda: f.read(8192), b""):
             hasher.update(chunk)
@@ -54,8 +54,8 @@ def manage_duplicate_file(file_path: str):
     """
     Check if a file is duplicate.
 
-    Compare the md5 of files with copy name pattern
-    and remove if the md5 hash is same.
+    Compare the SHA-256 hash of files with copy name pattern
+    and remove if the hash is same.
 
     Parameters
     ----------
