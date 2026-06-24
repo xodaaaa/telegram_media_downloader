@@ -5,6 +5,7 @@ They are automatically skipped on older Python versions.
 """
 
 import sys
+import tempfile
 import unittest
 
 import pytest
@@ -13,6 +14,9 @@ import pytest
 nicegui = pytest.importorskip("nicegui", reason="NiceGUI requires Python >= 3.10")
 
 from unittest import mock
+
+_VALID_TOUR_PAGES = {"config", "execution", "history", "terminal"}
+_TERMINAL_MAX_LINES = 10
 
 
 class TestStyles(unittest.TestCase):
@@ -79,12 +83,11 @@ class TestTour(unittest.TestCase):
     def test_tour_steps_page_values_are_valid(self):
         from webui.tour import TOUR_STEPS
 
-        valid_pages = {"config", "execution", "history", "terminal"}
         for step in TOUR_STEPS:
             if "page" in step:
                 self.assertIn(
                     step["page"],
-                    valid_pages,
+                    _VALID_TOUR_PAGES,
                     f"Step '{step['title']}' has invalid page '{step['page']}'",
                 )
 
@@ -152,15 +155,16 @@ class TestExecutionTab(unittest.TestCase):
 
         mock_config = {"download_directory": "downloads"}
         chat_inputs = [{"last_read": ui.input()}]
+        tmp_dir = tempfile.gettempdir()
         with ui.column():
-            holder = {"widget": ui.log(max_lines=10)}
+            holder = {"widget": ui.log(max_lines=_TERMINAL_MAX_LINES)}
             build_execution_tab(
                 mock_config,
-                mock.Mock(),
-                chat_inputs,
-                mock.Mock(),
-                "/tmp",
-                holder,
+                load_config_fn=mock.Mock(),
+                chat_inputs=chat_inputs,
+                open_media_fn=mock.Mock(),
+                this_dir=tmp_dir,
+                log_area=holder,
             )
 
 
@@ -177,9 +181,9 @@ class TestHistoryTab(unittest.TestCase):
         from webui.history_tab import build_history_tab
 
         mock_config = {}
+        tmp_dir = tempfile.gettempdir()
         with ui.column():
-            # build_history_tab(config: dict, open_media_fn, this_dir: str)
-            build_history_tab(mock_config, mock.Mock(), "/tmp")
+            build_history_tab(mock_config, mock.Mock(), tmp_dir)
 
 
 class TestConfigManager(unittest.TestCase):
