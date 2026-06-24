@@ -43,7 +43,6 @@ def build_execution_tab(
     total_gb_label = None
     monitor_client_ref = {"client": None}
     stop_monitoring_fn = {"fn": None}
-    btn_refs = {}
     empty_state_ref = {}
 
     # Speed meter state (global)
@@ -136,27 +135,23 @@ def build_execution_tab(
 
     # Buttons
     with ui.row().style("gap: 8px; width: 100%; margin-bottom: 8px;"):
-        btn_refs["history"] = (
-            ui.button(
-                "Start History Download",
-                on_click=lambda: ui.timer(0.0, run_downloader, once=True),
-                icon="play_arrow",
-            )
-            .props('unelevated color="primary"')
-            .style("flex: 1; height: 48px; font-size: 14px; font-weight: 600;")
+        ui.button(
+            "Start History Download",
+            on_click=lambda: ui.timer(0.0, run_downloader, once=True),
+            icon="play_arrow",
+        ).props('unelevated color="primary"').style(
+            "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
         )
-        btn_refs["monitor"] = (
-            ui.button(
-                "Start Monitoring",
-                on_click=lambda: ui.timer(0.0, run_monitor, once=True),
-                icon="radar",
-            )
-            .props('unelevated color="info"')
-            .style("flex: 1; height: 48px; font-size: 14px; font-weight: 600;")
+        ui.button(
+            "Start Monitoring",
+            on_click=lambda: ui.timer(0.0, run_monitor, once=True),
+            icon="radar",
+        ).props('unelevated color="info"').style(
+            "flex: 1; height: 48px; font-size: 14px; font-weight: 600;"
         )
 
     with ui.row().style("gap: 8px; width: 100%;"):
-        btn_refs["stop"] = (
+        stop_btn = (
             ui.button(
                 "Stop Monitoring",
                 on_click=lambda: stop_monitoring_fn["fn"](),
@@ -366,8 +361,6 @@ def build_execution_tab(
             ui.notify("Downloader is already running!", type="warning")
             return
         is_running["value"] = True
-        btn_refs["history"].props('unelevated color="primary" disabled')
-        btn_refs["monitor"].props('unelevated color="info" disabled')
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -421,16 +414,12 @@ def build_execution_tab(
             main_logger.removeHandler(ui_logger)
             _show_empty_state()
             update_total_gb()
-            btn_refs["history"].props('unelevated color="primary"')
-            btn_refs["monitor"].props('unelevated color="info"')
 
     async def run_monitor():
         if is_monitoring["value"]:
             ui.notify("Monitor is already running!", type="warning")
             return
         is_monitoring["value"] = True
-        btn_refs["history"].props('unelevated color="primary" disabled')
-        btn_refs["monitor"].props('unelevated color="info" disabled')
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -447,7 +436,7 @@ def build_execution_tab(
             fresh_config = load_config_fn()
             client = await media_downloader.begin_monitor(fresh_config)
             monitor_client_ref["client"] = client
-            btn_refs["stop"].style("display: block;")
+            stop_btn.style("display: block;")
             _log_widget().push("Monitor active. Listening for new media...")
             ui.notify(
                 "Monitor mode active. Listening for new messages...",
@@ -459,8 +448,6 @@ def build_execution_tab(
             _log_widget().push(f"Error: {str(e)}")
             ui.notify(f"Error: {str(e)}", type="negative", position="top")
             main_logger.removeHandler(ui_logger)
-            btn_refs["history"].props('unelevated color="primary"')
-            btn_refs["monitor"].props('unelevated color="info"')
 
     async def stop_monitoring():
         if monitor_client_ref["client"] is not None:
@@ -470,11 +457,9 @@ def build_execution_tab(
                 pass
             monitor_client_ref["client"] = None
         is_monitoring["value"] = False
-        btn_refs["stop"].style("display: none;")
+        stop_btn.style("display: none;")
         update_status("Idle", "status-idle")
         media_downloader.UI_PROGRESS_HOOK = None
-        btn_refs["history"].props('unelevated color="primary"')
-        btn_refs["monitor"].props('unelevated color="info"')
         main_logger = logging.getLogger("media_downloader")
         try:
             main_logger.removeHandler(ui_logger)
