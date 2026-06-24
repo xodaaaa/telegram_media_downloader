@@ -237,7 +237,7 @@ def build_execution_tab(
                     action_col = ui.column().style(
                         "min-width: 40px; align-items: flex-end;"
                     )
-                active_downloads[desc] = (
+                active_downloads[desc] = [
                     row,
                     name_label,
                     bar,
@@ -245,41 +245,43 @@ def build_execution_tab(
                     action_col,
                     now,
                     0,
-                )
+                    True,  # visible
+                    False,  # completed
+                ]
                 download_order.append(desc)
                 # Max 4 visible: hide oldest completed first
-                visible = [
-                    d
+                visible_count = sum(
+                    1
                     for d in download_order
-                    if d in active_downloads
-                    and "display: none"
-                    not in (active_downloads[d][0].style().get("display") or "")
-                ]
-                while len(visible) > 4:
+                    if d in active_downloads and active_downloads[d][7]
+                )
+                while visible_count > 4:
                     removed = None
-                    for d in visible:
-                        r = active_downloads[d][0]
-                        if "order: 1" in (r.style().get("") or ""):
-                            removed = d
-                            break
-                    if removed is None and visible:
-                        removed = visible[0]
+                    for d in download_order:
+                        if d in active_downloads and active_downloads[d][7]:
+                            if active_downloads[d][8]:
+                                removed = d
+                                break
+                    if removed is None:
+                        for d in download_order:
+                            if d in active_downloads and active_downloads[d][7]:
+                                removed = d
+                                break
                     if removed:
                         try:
                             active_downloads[removed][0].style("display: none;")
                         except Exception:
                             pass
-                        visible.remove(removed)
+                        active_downloads[removed][7] = False
+                        visible_count -= 1
 
-        (
-            row,
-            name_label,
-            bar,
-            info_label,
-            action_col,
-            start_time,
-            last_eta_bytes,
-        ) = active_downloads[desc]
+        entry = active_downloads[desc]
+        row = entry[0]
+        name_label = entry[1]
+        bar = entry[2]
+        info_label = entry[3]
+        action_col = entry[4]
+        start_time = entry[5]
 
         if total > 0:
             fraction = current / total
@@ -309,6 +311,7 @@ def build_execution_tab(
             info_label.set_text(info_text)
 
             if current >= total:
+                entry[8] = True  # mark completed
                 row.style("order: 1;")
                 name_label.style(
                     "font-size: 13px; font-weight: 600;"
@@ -351,15 +354,8 @@ def build_execution_tab(
                                 "font-size: 12px;"
                             )
 
-            active_downloads[desc] = (
-                row,
-                name_label,
-                bar,
-                info_label,
-                action_col,
-                start_time,
-                current,
-            )
+            active_downloads[desc][5] = start_time
+            active_downloads[desc][6] = current
         else:
             bar.set_value(0)
             info_label.set_text("...")
