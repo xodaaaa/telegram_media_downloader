@@ -125,7 +125,7 @@ def build_execution_tab(
             )
 
         progress_container = ui.column().style(
-            "width: 100%; gap: 8px; max-height: 420px;"
+            "width: 100%; gap: 8px; max-height: 340px;"
             " overflow-y: auto; padding-right: 4px;"
         )
         empty_state_ref["el"] = ui.label("No active downloads").style(
@@ -212,8 +212,8 @@ def build_execution_tab(
                     .classes("dl-row")
                     .style("width: 100%; align-items: center; gap: 10px;")
                 )
+                row.style(row.style().get("") + " order: 0;")
                 with row:
-                    name_label = ui.label(desc).style(
                         "font-size: 13px; font-weight: 500;"
                         " color: var(--text-secondary);"
                         " white-space: nowrap; overflow: hidden;"
@@ -243,14 +243,6 @@ def build_execution_tab(
                     0,
                 )
                 download_order.append(desc)
-                # Max 4 visible: hide oldest
-                while len(download_order) > 4:
-                    old_desc = download_order.pop(0)
-                    if old_desc in active_downloads:
-                        try:
-                            active_downloads[old_desc][0].style("display: none;")
-                        except Exception:
-                            pass
 
         (
             row,
@@ -290,6 +282,7 @@ def build_execution_tab(
             info_label.set_text(info_text)
 
             if current >= total:
+                row.style(row.style().get("") + " order: 1;")
                 name_label.style(
                     "font-size: 13px; font-weight: 600;"
                     " color: var(--positive);"
@@ -297,7 +290,9 @@ def build_execution_tab(
                     " text-overflow: ellipsis; flex: 1; min-width: 0;"
                 )
                 if desc.startswith("Downloading "):
-                    name_label.set_text(desc.replace("Downloading ", "\u2713 ", 1))
+                    name_label.set_text(
+                        desc.replace("Downloading ", "\u2713 ", 1)
+                    )
                 info_label.set_text("Done")
                 info_label.style("color: var(--positive);")
 
