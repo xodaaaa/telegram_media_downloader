@@ -333,6 +333,9 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
             DOWNLOADED_IDS[chat_id] = []
         if chat_id not in PROCESSED_IDS:
             PROCESSED_IDS[chat_id] = []
+        if chat_id not in PENDING_IDS:
+            PENDING_IDS[chat_id] = 0
+        PENDING_IDS[chat_id] = PENDING_IDS.get(chat_id, 0) + 1
         try:
             _type = get_media_type(message)
             logger.debug("Processing message %s of type %s", message.id, _type)
@@ -456,6 +459,8 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                 )
             FAILED_IDS[chat_id].append(message.id)
             break
+        finally:
+            PENDING_IDS[chat_id] = max(0, PENDING_IDS.get(chat_id, 1) - 1)
     return message.id
 
 
