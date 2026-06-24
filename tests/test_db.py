@@ -41,7 +41,7 @@ class TestGetTotalDownloadedBytes(unittest.TestCase):
     def setUp(self):
         db._db_initialized = False
 
-        self._tmpdir = tempfile.TemporaryDirectory()
+        self._tmpdir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self._db_file = tempfile.NamedTemporaryFile(
             delete=False, suffix=".sqlite3", dir=self._tmpdir.name
         )
@@ -57,7 +57,6 @@ class TestGetTotalDownloadedBytes(unittest.TestCase):
                 os.remove(self._db_path)
             except OSError:
                 pass
-        self._tmpdir.cleanup()
 
     def test_empty_db_returns_zero(self):
         self.assertEqual(db.get_total_downloaded_bytes(), 0)
@@ -76,7 +75,7 @@ class TestDB(unittest.TestCase):
         # Reset initialized flag for fresh testing
         db._db_initialized = False
         # Create a unique temporary file for this test
-        self._tmpdir = tempfile.TemporaryDirectory()
+        self._tmpdir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
         self.test_db_file = tempfile.NamedTemporaryFile(
             delete=False, suffix=".sqlite3", dir=self._tmpdir.name
         )
@@ -96,7 +95,6 @@ class TestDB(unittest.TestCase):
             except OSError:
                 # On Windows, it might still be locked briefly
                 pass
-        self._tmpdir.cleanup()
 
     def test_init_db(self):
         """Verify that init_db creates the table and index."""
