@@ -61,6 +61,16 @@ Key functions implementing these modes:
 - `check_account_premium(config)` — connects briefly, calls `client.get_me()`,
   and returns `{premium, first_name, last_name, username}`. Used by the Web UI
   badge.
+- `send_auth_code(api_id, api_hash, phone)` — creates a client, connects,
+  requests an SMS code, and returns `{phone_code_hash, client}`. Used by the
+  setup wizard for first-run phone verification.
+- `verify_auth_code(client, phone, code, phone_code_hash)` — verifies the SMS
+  code, calls `client.sign_in()`, creates the `.session` file, and disconnects.
+  Returns `True` on success.
+- `_resolve_download_delay(download_delay)` — parses and computes a download
+  delay value from config (fixed float, random range `[min, max]`, or `None`).
+  Centralized helper used by both `process_messages` (history) and
+  `register_monitor_handler` (monitor) to avoid code duplication.
 
 ### `history_monitor` auto-switch behavior
 
@@ -204,6 +214,30 @@ The UI is a single-page app using NiceGUI's declarative layout:
   `logging.getLogger("asyncio").setLevel(CRITICAL)`, plus `sys.unraisablehook`
   override to silence `GeneratorExit` exceptions from Python 3.13.
 
+### Setup Wizard (`webui/setup_wizard.py`)
+- **Purpose**: guides first-time users through 3-step authentication setup
+  without requiring manual `config.yaml` editing.
+- **State detection** (in `webui.py`):
+  - No API creds → full wizard (Steps 1→2→3)
+  - No `.session` file → phone re-auth only (Step 2)
+  - No `chat_id` → chat input only (Step 3)
+  - All present → normal UI, no wizard
+- **Step 1 — API Credentials**: `api_id` (number) + `api_hash` (text with 👁
+  toggle). Validates both are non-empty. Link to my.telegram.org for new users.
+- **Step 2 — Phone Verification**: `phone` input (international format) → "Send
+  Code" button calls `media_downloader.send_auth_code()` → shows spinner →
+  `code` input → "Verify" calls `media_downloader.verify_auth_code()`.
+  On success: saves `phone` to config, advances to Step 3.
+- **Step 3 — Target Chat**: `chat_id`/`@username` input. Options to "Skip" or
+  "Finish". On Finish: saves `chat_id`, `chats` list, defaults for
+  `download_delay: [15, 30]`, `max_concurrent_downloads: 4`,
+  `media_types`, and `file_formats`.
+- **Style constants**: `_PROPS_DENSE`, `_GAP_8`, `_COLOR_NEG`, `_COLOR_POS`,
+  `_COLOR_SEC`, `_FLAT_GREY`, `_FONT_13`, `_TEXT_SUBTITLE` — extracted to
+  module level (SonarCloud S1192 fix).
+- **Helpers**: `_step_color(active, past)`, `_set_result(text, style)` — reduce
+  cognitive complexity (SonarCloud S3776/S3358 fix).
+
 ## Database (`db.py`)
 
 SQLite database at `downloads.sqlite3` (relative to `db.py`).
@@ -284,12 +318,35 @@ safer rate-limiting out of the box.
   - `test_pacing.py` — download delay and concurrency (4 tests).
   - `test_config_manager.py` — YAML load/save (8 tests).
   - `utils/` tests — file management, logging, meta, updates.
-- **Test isolation**: `tests/conftest.py` redirects `db.DB_PATH` to a
-  temporary file to prevent test runs from touching the real database.
+- **Test isolation**: `tests/conftest.py` wraps `db.DB_PATH` in a
+  `tempfile.TemporaryDirectory()` with `ignore_cleanup_errors=True` to
+  prevent test runs from touching the real database and to avoid
+  Windows SQLite file-lock issues during cleanup. Same pattern used in
+  `test_db.py` (2 classes) and `test_config_manager.py`.
   `test_monitor.py` classes create fresh `asyncio` event loops in `setUp()`
   to avoid conflicts with `test_media_downloader.py`'s `tearDownClass` loop
   closure on Python 3.13.
 - App version in `utils/__init__.py`.
+
+## CI/CD (`.github/workflows/`)
+
+### `unittest.yml` — Test Suite
+- **Trigger**: push + pull_request on `master`.
+- **Permissions**: `contents: read` (minimum privilege).
+- **Jobs**: `test` (18 OS×Python matrix) + `coverage` (separate, after tests).
+- **Strategy**: `fail-fast: false` — one OS failure doesn't cancel others.
+- **Fork safety**: coverage job conditionally runs only for the main repo
+  (`github.event.pull_request.head.repo.full_name == github.repository`),
+  preventing Codecov token exposure on forks.
+- **SHA pinning**: all actions pinned to full commit SHAs
+  (`checkout@11bd...9af683`, `setup-python@0b93...90a2b`,
+  `codecov-action@b9fd...00238`) per SonarCloud S7637.
+
+### `code-checks.yml` — Linting
+- **Trigger**: push + pull_request on `master` + `workflow_dispatch` (manual).
+- **Steps**: checkout → setup-python 3.12 → `make dev_install` → `pre-commit
+  run --all-files --show-diff-on-failure`.
+- Uses `pip install pre-commit` directly instead of `pre-commit/action`.
 
 ## Dependencies
 
