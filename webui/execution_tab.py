@@ -421,6 +421,7 @@ def build_execution_tab(
             )
             return
         is_running["value"] = True
+        switched_to_monitor = False
         media_downloader.PENDING_IDS.clear()
         media_downloader.FAILED_IDS.clear()
         media_downloader.DOWNLOADED_IDS.clear()
@@ -472,17 +473,27 @@ def build_execution_tab(
                     type="positive",
                     position="top",
                 )
+                # Auto-switch to monitor if mode is history_monitor
+                fresh2 = load_config_fn()
+                if fresh2.get("mode") == "history_monitor":
+                    _log_widget().push("Backlog complete. Switching to monitor mode...")
+                    ui.notify("Switching to monitor mode...", type="info")
+                    switched_to_monitor = True
+                    is_running["value"] = False
+                    await run_monitor()
+                    return
         except Exception as e:
             update_status("Error", "status-error")
             _log_widget().push(f"Error: {str(e)}")
             ui.notify(f"Error: {str(e)}", type="negative", position="top")
         finally:
-            media_downloader.UI_PROGRESS_HOOK = None
-            is_running["value"] = False
-            main_logger.removeHandler(ui_logger)
-            stop_dl_btn.style("display: none;")
-            download_client_ref["client"] = None
-            _update_empty_state()
+            if not switched_to_monitor:
+                media_downloader.UI_PROGRESS_HOOK = None
+                is_running["value"] = False
+                main_logger.removeHandler(ui_logger)
+                stop_dl_btn.style("display: none;")
+                download_client_ref["client"] = None
+                _update_empty_state()
             # Save progress even on error/stop
             fresh = load_config_fn()
             media_downloader.update_config(fresh)
