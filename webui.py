@@ -37,6 +37,7 @@ def index():
     dark_mode = ui.dark_mode()
 
     current_page = {"value": "config"}
+    log_area_holder = {}
 
     with ui.row().classes("w-full h-screen").style("margin:0; padding:0; gap:0;"):
 
@@ -185,7 +186,7 @@ def index():
                         chat_inputs,
                         open_media,
                         THIS_DIR,
-                        log_area,
+                        log_area_holder,
                     )
 
                 with ui.tab_panel("history").style("padding: 0;"):
@@ -218,6 +219,7 @@ def index():
                         " line-height: 1.7; overflow-y: auto;"
                     )
                 )
+                log_area_holder["widget"] = log_area
 
     # Build tour
     show_tour, check_first_visit = build_tour(current_page, tab_panels, nav_items)

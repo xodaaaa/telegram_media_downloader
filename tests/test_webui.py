@@ -153,13 +153,14 @@ class TestExecutionTab(unittest.TestCase):
         mock_config = {"download_directory": "downloads"}
         chat_inputs = [{"last_read": ui.input()}]
         with ui.column():
+            holder = {"widget": ui.log(max_lines=10)}
             build_execution_tab(
                 mock_config,
                 mock.Mock(),
                 chat_inputs,
                 mock.Mock(),
                 "/tmp",
-                ui.log(max_lines=10),
+                holder,
             )
 
 
