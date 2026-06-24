@@ -44,6 +44,10 @@ def build_config_tab(config: dict, save_config_fn):
 
         with ui.row().style("gap: 16px; width: 100%;"):
             api_id_val = config.get("api_id")
+            try:
+                api_id_val = int(api_id_val) if api_id_val is not None else None
+            except (TypeError, ValueError):
+                api_id_val = None
             global_inputs["api_id"] = (
                 ui.number("API ID", value=api_id_val, format="%.0f")
                 .classes("col")
