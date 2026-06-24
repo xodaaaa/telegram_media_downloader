@@ -64,4 +64,4 @@ max_concurrent_downloads: 4
 # Pause between starting each file download.
 # Fixed delay:  download_delay: 2        (always 2 seconds)
 # Random range: download_delay: [1, 5]   (random 1–5 seconds per file)
-download_delay: null
+download_delay: [15, 30]

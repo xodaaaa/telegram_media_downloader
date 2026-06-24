@@ -40,7 +40,6 @@ def build_execution_tab(
     is_running = {"value": False}
     is_monitoring = {"value": False}
     active_downloads = {}
-    account_info = {"value": None}
     total_gb_label = None
     monitor_client_ref = {"client": None}
     stop_monitoring_fn = {"fn": None}
@@ -50,6 +49,7 @@ def build_execution_tab(
     speed_byte_window = []
     last_known_bytes = {}
     speed_label = None
+    download_order = []  # ordered list of desc keys (active first)
 
     def compute_speed_str():
         now = time.monotonic()
@@ -72,7 +72,7 @@ def build_execution_tab(
             s = compute_speed_str()
             speed_label.set_text(f"\u2b07 {s}" if s else "\u2b07 \u2014")
 
-    # Section Header + Account + Status
+    # Section Header + Status
     with ui.column().style("gap: 2px; margin-bottom: 28px;"):
         with ui.row().classes("items-center justify-between").style("width: 100%;"):
             with ui.column().style("gap: 2px;"):
@@ -80,45 +80,12 @@ def build_execution_tab(
                 ui.label(
                     "Download or monitor media from your configured chats."
                 ).classes("section-subtitle")
-
-        # Account card
-        with ui.row().style("gap: 12px; align-items: center; margin-top: 12px;"):
-            account_avatar = (
-                ui.avatar("person", size="lg", color="primary")
-                .props("rounded")
-                .style("width: 48px; height: 48px; font-size: 22px;")
-            )
-            with ui.column().style("gap: 2px;"):
-                account_name_label = ui.label("").style(
-                    "font-size: 15px; font-weight: 600;" " color: var(--text-primary);"
-                )
-                account_sub_label = ui.label("").style(
-                    "font-size: 12px; font-weight: 500;" " color: var(--text-tertiary);"
-                )
             status_label = ui.html(
                 '<span class="status-badge status-idle">'
                 '<span style="width:6px;height:6px;border-radius:50%;'
                 'background:currentColor;display:inline-block;"></span>'
                 " Idle</span>"
             )
-
-    def update_account_display(info):
-        if info is None:
-            account_name_label.set_text("Not connected")
-            account_sub_label.set_text("")
-            return
-        name = info.get("first_name", "")
-        last = info.get("last_name", "")
-        full = (name + " " + last).strip()
-        account_name_label.set_text(full or info.get("username", "Unknown"))
-        if info.get("premium"):
-            account_sub_label.set_text("\u2b50 Premium")
-            account_sub_label.style("color: var(--warning);")
-            account_avatar.props("color=warning")
-        else:
-            account_sub_label.set_text("Free account")
-            account_sub_label.style("color: var(--text-tertiary);")
-            account_avatar.props("color=primary")
 
     def update_status(text, style_class):
         dot = (
@@ -133,13 +100,6 @@ def build_execution_tab(
         if total_gb_label is not None:
             total_bytes = db.get_total_downloaded_bytes()
             total_gb_label.set_text(f"Total: {db.format_bytes(total_bytes)}")
-
-    async def check_account():
-        if account_info["value"] is None:
-            fresh = load_config_fn()
-            info = await media_downloader.check_account_premium(fresh)
-            account_info["value"] = info
-            update_account_display(info)
 
     # Metrics row (speed + pending + total GB)
     with ui.row().style("gap: 16px; margin-bottom: 20px; align-items: center;"):
@@ -279,9 +239,18 @@ def build_execution_tab(
                     bar,
                     info_label,
                     action_col,
-                    now,  # start_time
-                    0,  # last_bytes for ETA
+                    now,
+                    0,
                 )
+                download_order.append(desc)
+                # Max 4 visible: hide oldest
+                while len(download_order) > 4:
+                    old_desc = download_order.pop(0)
+                    if old_desc in active_downloads:
+                        try:
+                            active_downloads[old_desc][0].style("display: none;")
+                        except Exception:
+                            pass
 
         (
             row,
@@ -386,6 +355,7 @@ def build_execution_tab(
             _log_widget().clear()
             progress_container.clear()
             active_downloads.clear()
+            download_order.clear()
             speed_byte_window.clear()
             last_known_bytes.clear()
             _show_empty_state()
@@ -444,6 +414,7 @@ def build_execution_tab(
             _log_widget().clear()
             progress_container.clear()
             active_downloads.clear()
+            download_order.clear()
             speed_byte_window.clear()
             last_known_bytes.clear()
             _show_empty_state()
@@ -500,7 +471,4 @@ def build_execution_tab(
 
     ui.timer(0.5, update_pending)
     ui.timer(1.0, update_total_gb)
-
-    # Check account info on load
-    ui.timer(0.3, check_account, once=True)
     update_total_gb()
