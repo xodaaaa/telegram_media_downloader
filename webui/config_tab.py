@@ -3,6 +3,20 @@
 from nicegui import ui
 
 _OUTLINED_DENSE = "outlined dense"
+_PADDING_24_MB_20 = "padding: 24px; margin-bottom: 20px;"
+_GAP_0 = "gap: 0;"
+_CARD_TITLE_FONT = (
+    "font-size: 15px; font-weight: 600; color: var(--text-primary);"
+    " letter-spacing: -0.01em;"
+)
+_CARD_SUBTITLE_FONT = "font-size: 12px; color: var(--text-tertiary);"
+_GAP_16_W100_MB_16 = "gap: 16px; width: 100%; margin-bottom: 16px;"
+_GAP_4_W100 = "gap: 4px; width: 100%;"
+_LABEL_SECTION = (
+    "font-size: 11px; font-weight: 600; color: var(--text-tertiary);"
+    " text-transform: uppercase; letter-spacing: 0.05em;"
+)
+_PROPS_PLACEHOLDER_ALL = 'outlined dense placeholder="all"'
 
 
 def build_config_tab(config: dict, save_config_fn):  # NOSONAR
@@ -31,17 +45,13 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
         ).classes("section-subtitle")
 
     # ── API Credentials Card ──
-    with ui.element("div").classes("premium-card").style(
-        "padding: 24px; margin-bottom: 20px;"
-    ):
+    with ui.element("div").classes("premium-card").style(_PADDING_24_MB_20):
         with ui.row().classes("items-center").style("gap: 10px; margin-bottom: 20px;"):
             ui.icon("vpn_key", size="sm", color="primary")
-            with ui.column().style("gap: 0;"):
-                ui.label("API Credentials").style(
-                    "font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em;"
-                )
+            with ui.column().style(_GAP_0):
+                ui.label("API Credentials").style(_CARD_TITLE_FONT)
                 ui.label("Your Telegram API ID and hash from my.telegram.org").style(
-                    "font-size: 12px; color: var(--text-tertiary);"
+                    _CARD_SUBTITLE_FONT
                 )
 
         with ui.row().style("gap: 16px; width: 100%;"):
@@ -68,20 +78,16 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
             )
 
     # ── Download Settings Card ──
-    with ui.element("div").classes("premium-card").style(
-        "padding: 24px; margin-bottom: 20px;"
-    ):
+    with ui.element("div").classes("premium-card").style(_PADDING_24_MB_20):
         with ui.row().classes("items-center").style("gap: 10px; margin-bottom: 20px;"):
             ui.icon("settings", size="sm", color="primary")
-            with ui.column().style("gap: 0;"):
-                ui.label("Download Settings").style(
-                    "font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em;"
-                )
+            with ui.column().style(_GAP_0):
+                ui.label("Download Settings").style(_CARD_TITLE_FONT)
                 ui.label("Configure download directory, concurrency, and pacing").style(
-                    "font-size: 12px; color: var(--text-tertiary);"
+                    _CARD_SUBTITLE_FONT
                 )
 
-        with ui.row().style("gap: 16px; width: 100%; margin-bottom: 16px;"):
+        with ui.row().style(_GAP_16_W100_MB_16):
             global_inputs["download_dir"] = (
                 ui.input(
                     "Download Directory",
@@ -91,7 +97,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                 .props('outlined dense hint="Leave empty to use app directory"')
             )
 
-        with ui.row().style("gap: 16px; width: 100%; margin-bottom: 16px;"):
+        with ui.row().style(_GAP_16_W100_MB_16):
             global_inputs["start_date"] = (
                 ui.input("Start Date", value=config.get("start_date", ""))
                 .classes("col")
@@ -112,7 +118,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                 .props(_OUTLINED_DENSE)
             )
 
-        with ui.row().style("gap: 16px; width: 100%; margin-bottom: 16px;"):
+        with ui.row().style(_GAP_16_W100_MB_16):
             global_inputs["max_concurrent"] = (
                 ui.number(
                     "Max Concurrent",
@@ -199,20 +205,16 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                 )
 
     # ── Target Chats Card ──
-    with ui.element("div").classes("premium-card").style(
-        "padding: 24px; margin-bottom: 20px;"
-    ):
+    with ui.element("div").classes("premium-card").style(_PADDING_24_MB_20):
         with ui.row().classes("items-center justify-between").style(
             "width: 100%; margin-bottom: 20px;"
         ):
             with ui.row().classes("items-center").style("gap: 10px;"):
                 ui.icon("forum", size="sm", color="primary")
-                with ui.column().style("gap: 0;"):
-                    ui.label("Target Chats").style(
-                        "font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em;"
-                    )
+                with ui.column().style(_GAP_0):
+                    ui.label("Target Chats").style(_CARD_TITLE_FONT)
                     ui.label("Add chats to download media from").style(
-                        "font-size: 12px; color: var(--text-tertiary);"
+                        _CARD_SUBTITLE_FONT
                     )
 
         chats_container = ui.column().style("width: 100%; gap: 12px;")
@@ -264,9 +266,9 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                             "gap: 16px; padding: 12px; background: rgba(0,0,0,0.02); border-radius: 8px; border: 1px solid var(--border-color); margin-top: 8px; width: 100%;"
                         ):
                             # General & Pacing
-                            with ui.column().style("gap: 4px; width: 100%;"):
+                            with ui.column().style(_GAP_4_W100):
                                 ui.label("General & Pacing Limits").style(
-                                    "font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;"
+                                    _LABEL_SECTION
                                 )
                                 with ui.row().style("gap: 12px; width: 100%;"):
                                     c_inputs["download_dir"] = (
@@ -310,10 +312,8 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                             ui.separator().style("opacity: 0.5")
 
                             # Message Filters
-                            with ui.column().style("gap: 4px; width: 100%;"):
-                                ui.label("Message Filters").style(
-                                    "font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;"
-                                )
+                            with ui.column().style(_GAP_4_W100):
+                                ui.label("Message Filters").style(_LABEL_SECTION)
                                 with ui.row().style("gap: 12px; width: 100%;"):
                                     c_inputs["start_date"] = (
                                         ui.input(
@@ -344,10 +344,8 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                             ui.separator().style("opacity: 0.5")
 
                             # Media & Formats
-                            with ui.column().style("gap: 4px; width: 100%;"):
-                                ui.label("Media Types & Formats").style(
-                                    "font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em;"
-                                )
+                            with ui.column().style(_GAP_4_W100):
+                                ui.label("Media Types & Formats").style(_LABEL_SECTION)
                                 with ui.row().style(
                                     "gap: 12px; width: 100%; align-items: start;"
                                 ):
@@ -384,9 +382,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                                     ),
                                                 )
                                                 .classes("col")
-                                                .props(
-                                                    'outlined dense placeholder="all"'
-                                                )
+                                                .props(_PROPS_PLACEHOLDER_ALL)
                                             )
                                             c_inputs["format_video"] = (
                                                 ui.input(
@@ -396,9 +392,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                                     ),
                                                 )
                                                 .classes("col")
-                                                .props(
-                                                    'outlined dense placeholder="all"'
-                                                )
+                                                .props(_PROPS_PLACEHOLDER_ALL)
                                             )
                                         with ui.row().style(
                                             "gap: 8px; width: 100%; align-items: start; margin-top: 4px;"
@@ -411,9 +405,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                                     ),
                                                 )
                                                 .classes("col")
-                                                .props(
-                                                    'outlined dense placeholder="all"'
-                                                )
+                                                .props(_PROPS_PLACEHOLDER_ALL)
                                             )
                                             c_inputs["format_document"] = (
                                                 ui.input(
@@ -423,9 +415,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                                                     ),
                                                 )
                                                 .classes("col")
-                                                .props(
-                                                    'outlined dense placeholder="all"'
-                                                )
+                                                .props(_PROPS_PLACEHOLDER_ALL)
                                             )
                     chat_inputs.append(c_inputs)
 

@@ -11,6 +11,12 @@ import db
 import media_downloader
 
 _DISPLAY_NONE = "display: none;"
+_GAP_ALIGN = "gap: 2px; align-items: center;"
+_FONT_10_500 = (
+    "font-size: 10px; font-weight: 500;"
+    " color: var(--text-tertiary); text-transform: uppercase;"
+    " letter-spacing: 0.05em;"
+)
 
 
 def build_execution_tab(  # NOSONAR
@@ -107,36 +113,24 @@ def build_execution_tab(  # NOSONAR
     with ui.row().style(
         "gap: 32px; margin-bottom: 20px; align-items: end; justify-content: center;"
     ):
-        with ui.column().style("gap: 2px; align-items: center;"):
+        with ui.column().style(_GAP_ALIGN):
             speed_label = ui.label("\u2014").style(
                 "font-size: 18px; font-weight: 700;"
                 " color: var(--accent); font-variant-numeric: tabular-nums;"
             )
-            ui.label("\u2b07 speed").style(
-                "font-size: 10px; font-weight: 500;"
-                " color: var(--text-tertiary); text-transform: uppercase;"
-                " letter-spacing: 0.05em;"
-            )
-        with ui.column().style("gap: 2px; align-items: center;"):
+            ui.label("\u2b07 speed").style(_FONT_10_500)
+        with ui.column().style(_GAP_ALIGN):
             pending_label = ui.label("0 / 0").style(
                 "font-size: 18px; font-weight: 700;"
                 " color: var(--text-secondary); font-variant-numeric: tabular-nums;"
             )
-            ui.label("\U0001f4e5 active / queued").style(
-                "font-size: 10px; font-weight: 500;"
-                " color: var(--text-tertiary); text-transform: uppercase;"
-                " letter-spacing: 0.05em;"
-            )
-        with ui.column().style("gap: 2px; align-items: center;"):
+            ui.label("\U0001f4e5 active / queued").style(_FONT_10_500)
+        with ui.column().style(_GAP_ALIGN):
             total_gb_label = ui.label("\u2014").style(
                 "font-size: 18px; font-weight: 700;"
                 " color: var(--text-primary); font-variant-numeric: tabular-nums;"
             )
-            ui.label("\U0001f4e6 total").style(
-                "font-size: 10px; font-weight: 500;"
-                " color: var(--text-tertiary); text-transform: uppercase;"
-                " letter-spacing: 0.05em;"
-            )
+            ui.label("\U0001f4e6 total").style(_FONT_10_500)
 
     # Active Downloads card
     with ui.element("div").classes("premium-card").style(
