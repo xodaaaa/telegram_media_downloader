@@ -888,6 +888,72 @@ async def check_account_premium(config: dict):
         return None
 
 
+async def send_auth_code(api_id: int, api_hash: str, phone: str) -> dict:
+    """Create a client, connect, and request an SMS verification code.
+
+    Parameters
+    ----------
+    api_id: int
+        Telegram API ID.
+    api_hash: str
+        Telegram API hash.
+    phone: str
+        Phone number in international format (e.g. ``+521234567890``).
+
+    Returns
+    -------
+    dict
+        ``{"phone_code_hash": str, "client": TelegramClient}`` on success,
+        or ``{"error": str}`` on failure.
+    """
+    try:
+        client = TelegramClient(
+            "media_downloader",
+            api_id=api_id,
+            api_hash=api_hash,
+            device_model=DEVICE_MODEL,
+            system_version=SYSTEM_VERSION,
+            app_version=APP_VERSION,
+            lang_code=LANG_CODE,
+        )
+        await client.connect()
+        result = await client.send_code_request(phone)
+        return {"phone_code_hash": result.phone_code_hash, "client": client}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def verify_auth_code(client, phone: str, code: str, phone_code_hash: str) -> bool:
+    """Verify SMS code and sign in, creating the ``.session`` file.
+
+    Parameters
+    ----------
+    client: TelegramClient
+        Connected client from ``send_auth_code``.
+    phone: str
+        Phone number in international format.
+    code: str
+        Verification code received via SMS/Telegram.
+    phone_code_hash: str
+        Hash returned by ``send_auth_code``.
+
+    Returns
+    -------
+    bool
+        ``True`` on success, ``False`` on failure.
+    """
+    try:
+        await client.sign_in(phone, code, phone_code_hash=phone_code_hash)
+        await client.disconnect()
+        return True
+    except Exception:
+        try:
+            await client.disconnect()
+        except Exception:
+            pass
+        return False
+
+
 async def begin_import(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     config: dict, pagination_limit: int, client_ref: dict = None
 ) -> dict:

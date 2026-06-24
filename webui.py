@@ -24,6 +24,7 @@ from config_manager import load_config, save_config
 from webui.config_tab import build_config_tab
 from webui.execution_tab import build_execution_tab
 from webui.history_tab import build_history_tab
+from webui.setup_wizard import build_setup_wizard
 from webui.styles import PREMIUM_CSS
 from webui.tour import build_tour
 
@@ -52,6 +53,36 @@ def index():
     config = load_config()
     ui.add_head_html(PREMIUM_CSS)
     dark_mode = ui.dark_mode()
+
+    # ── First-run / auth detection ──
+    session_exists = os.path.exists(os.path.join(THIS_DIR, "media_downloader.session"))
+    has_api = bool(config.get("api_id") and config.get("api_hash"))
+    has_chat = bool(config.get("chats") or config.get("chat_id"))
+
+    if not has_api:
+        ui.timer(
+            0.3,
+            lambda: build_setup_wizard(
+                config, save_config, lambda: ui.navigate.reload(), start_step=1
+            ),
+            once=True,
+        )
+    elif not session_exists:
+        ui.timer(
+            0.3,
+            lambda: build_setup_wizard(
+                config, save_config, lambda: ui.navigate.reload(), start_step=2
+            ),
+            once=True,
+        )
+    elif not has_chat:
+        ui.timer(
+            0.3,
+            lambda: build_setup_wizard(
+                config, save_config, lambda: ui.navigate.reload(), start_step=3
+            ),
+            once=True,
+        )
 
     current_page = {"value": "config"}
     log_area_holder = {}
