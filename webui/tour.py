@@ -50,8 +50,8 @@ TOUR_STEPS = [
             "- **Max Concurrent** — How many files download simultaneously. "
             "Start with `1`–`3` to be safe. Higher values are faster but riskier\n"
             "- **Download Delay (sec)** — Wait time between starting each file. "
-            "Enter a single number like `2`, or a range like `1,5` for a random "
-            "delay between 1–5 seconds\n\n"
+            "Default is `15,30` (random 15–30s). Enter a single number like `2`, "
+            "or a range like `1,5` for a random delay between 1–5 seconds\n\n"
             "> 💡 **Tip:** If you're downloading from a large channel for the first time, "
             "use conservative settings (max 2 concurrent, 2–3 sec delay)."
         ),
@@ -98,48 +98,79 @@ TOUR_STEPS = [
         ),
     },
     {
+        "icon": "🔄",
+        "title": "Step 7 · Execution Modes",
+        "page": "config",
+        "body": (
+            "In `config.yaml`, the **mode** setting controls how the downloader runs:\n\n"
+            "- **history** (default) — Downloads backlog from the past and exits\n"
+            "- **monitor** — Skips backlog, listens for new incoming media forever\n"
+            "- **history_monitor** — Downloads backlog first, then automatically switches to monitor mode\n\n"
+            "> 💡 Use **history_monitor** for channels where you want to catch up "
+            "on old files AND stay up-to-date with new ones."
+        ),
+    },
+    {
         "icon": "▶️",
-        "title": "Step 7 · Running Downloads",
+        "title": "Step 8 · Running Downloads",
         "page": "execution",
         "body": (
             "Switch to the **Execution** tab to start downloading:\n\n"
-            "1. Click the **Start Download** button at the bottom\n"
-            "2. The app connects to Telegram (you may need to authenticate on first run via the terminal)\n"
-            "3. Watch the **status badge** in the top-right — it shows:\n"
-            "   - 🔵 **Idle** — Ready to start\n"
-            "   - 🟡 **Running** — Download in progress\n"
-            "   - 🟢 **Complete** — Finished successfully\n"
+            "**Start History Download** — Downloads backlog files from your chats.\n"
+            "**Start Monitoring** — Listens for new messages in real time.\n\n"
+            "Watch the **status badge** — it shows:\n"
+            "   - 🔵 **Idle** — Ready\n"
+            "   - 🟡 **Running** — History download in progress\n"
+            "   - 🟣 **Monitoring** — Listening for new media\n"
+            "   - 🟢 **Complete** — Finished\n"
             "   - 🔴 **Error** — Something went wrong\n\n"
-            "The **Active Downloads** card shows real-time progress bars for each file being downloaded, "
-            "with file size and percentage. Completed files show a ✓ mark and an **Open** button."
+            "While running, a **Stop Download** or **Stop Monitoring** button appears. "
+            "Clicking it saves progress and disconnects gracefully."
+        ),
+    },
+    {
+        "icon": "📊",
+        "title": "Step 9 · Live Metrics",
+        "page": "execution",
+        "body": (
+            "Three real-time metric cards sit above the downloads:\n\n"
+            "- **⬇ SPEED** — Global download speed across all files\n"
+            "- **📥 ACTIVE / QUEUED** — Files downloading now vs. total backlog remaining\n"
+            "- **📦 TOTAL** — Cumulative GB downloaded (persists across sessions)\n\n"
+            "The **Active Downloads** card shows up to 4 files at a time, "
+            "with active ones first. Each row shows the filename, a progress bar, "
+            "and an estimated time remaining (e.g. *73% · 2m left*). "
+            "Completed files show ✓ and an **Open** button."
         ),
     },
     {
         "icon": "🖥️",
-        "title": "Step 8 · Terminal Logs",
-        "page": "execution",
+        "title": "Step 10 · Terminal Tab",
+        "page": "terminal",
         "body": (
-            "Below Active Downloads, there's a collapsible **Terminal Output** section:\n\n"
-            "- Click the header to **expand/collapse** it\n"
-            "- Shows detailed logs: connection status, file-by-file progress, errors, and warnings\n"
+            "Click **Terminal** in the sidebar to see the live log:\n\n"
+            "- Shows detailed logs: connection status, file-by-file progress, "
+            "errors, and warnings\n"
             "- Useful for debugging if downloads fail or stall\n"
-            "- Keeps the last 300 log lines — older entries are automatically removed\n\n"
-            "> 💡 **Tip:** If a download seems stuck, expand the terminal to check for "
-            "Telegram rate-limit warnings or authentication prompts."
+            "- Keeps the last 500 log lines — older entries scroll off\n"
+            "- **Always accessible** — visible even while browsing other tabs\n\n"
+            "> 💡 **Tip:** If a download seems stuck, open the Terminal tab to check "
+            "for Telegram rate-limit warnings or authentication prompts."
         ),
     },
     {
         "icon": "📋",
-        "title": "Step 9 · Download History",
+        "title": "Step 11 · Download History",
         "page": "history",
         "body": (
             "The **History** tab shows every file that's been downloaded:\n\n"
+            "- **Total downloaded** — Shows cumulative GB at the top, auto-refreshes\n"
             "- **Search** — Type a filename to filter results instantly\n"
             "- **Type filter** — Dropdown to show only photos, videos, documents, etc.\n"
             "- **Column sorting** — Click any column header to sort by Time, Chat, Name, or Size\n"
             "- **Pagination** — Navigate through pages at the bottom, 20 items per page\n"
-            "- **Open ↗** — Click to preview files right in the browser (images, videos, audio, PDFs)\n"
-            "- **Clear All** — Clears the history log (does not delete actual files)\n\n"
+            "- **Open ↗** — Click to preview files right in the browser\n"
+            "- **Clear All** — Clears the history log (does not delete files)\n\n"
             "You're all set! Happy downloading 🎉"
         ),
     },
