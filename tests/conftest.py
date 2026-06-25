@@ -1,6 +1,5 @@
 """Pytest configuration — prevents tests from touching the real database."""
 import os
-import sys
 import tempfile
 
 import db

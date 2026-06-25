@@ -1,7 +1,6 @@
 """Unit tests for the SQLite database layer."""
 
 import os
-import sqlite3
 import tempfile
 import unittest
 from unittest import mock

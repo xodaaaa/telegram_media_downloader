@@ -7,14 +7,9 @@ import platform
 import unittest
 from datetime import datetime, timezone
 from unittest import mock
-from unittest.mock import patch
 
-from telethon import TelegramClient
 from telethon.errors import FileReferenceExpiredError
 from telethon.tl.types import (
-    DocumentAttributeAudio,
-    DocumentAttributeFilename,
-    DocumentAttributeVideo,
     MessageMediaDocument,
     MessageMediaPhoto,
 )

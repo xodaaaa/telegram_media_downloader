@@ -4,7 +4,6 @@ These tests require NiceGUI which is only available on Python >= 3.10.
 They are automatically skipped on older Python versions.
 """
 
-import sys
 import tempfile
 import unittest
 
