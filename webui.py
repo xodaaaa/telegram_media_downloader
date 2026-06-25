@@ -35,7 +35,6 @@ _PADDING_0 = "padding: 0;"
 # Suppress Telethon connection cleanup noise on Python 3.13
 logging.getLogger("telethon").setLevel(logging.WARNING)
 logging.getLogger("asyncio").setLevel(logging.CRITICAL)
-import sys
 import warnings
 
 warnings.filterwarnings("ignore", message=".*coroutine ignored GeneratorExit.*")
@@ -129,7 +128,7 @@ def index():  # NOSONAR
                         ui.icon(icon)
                         ui.label(label)
 
-                        def navigate(pk=page_key, n=nav):
+                        def navigate(pk=page_key, _n=nav):
                             current_page["value"] = pk
                             tab_panels.set_value(pk)
                             for item, key in nav_items:
@@ -217,7 +216,7 @@ def index():  # NOSONAR
                     " padding: 24px;"
                 )
 
-            def open_media(url: str, filename: str):
+            def open_media(url: str, _filename: str):
                 media_container.clear()
                 ext = url.split(".")[-1].lower() if "." in url else ""
                 with media_container:

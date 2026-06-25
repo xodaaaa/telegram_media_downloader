@@ -229,7 +229,7 @@ def build_execution_tab(  # NOSONAR
     ui_logger = UILogHandler()
     ui_logger.setFormatter(logging.Formatter("%(message)s"))
 
-    def ui_progress_hook(desc, current, total, file_path=None, media_type=None):
+    def ui_progress_hook(desc, current, total, file_path=None, _media_type=None):
         nonlocal speed_byte_window, last_known_bytes
 
         # Global speed tracking
@@ -295,10 +295,13 @@ def build_execution_tab(  # NOSONAR
                 while visible_count > 4:
                     removed = None
                     for d in download_order:
-                        if d in active_downloads and active_downloads[d][7]:
-                            if active_downloads[d][8]:
-                                removed = d
-                                break
+                        if (
+                            d in active_downloads
+                            and active_downloads[d][7]
+                            and active_downloads[d][8]
+                        ):
+                            removed = d
+                            break
                     if removed is None:
                         for d in download_order:
                             if d in active_downloads and active_downloads[d][7]:

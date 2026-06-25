@@ -65,13 +65,13 @@ class MockMessage:
     def __init__(self, **kwargs):
         self.id = kwargs.get("id")
         self.media = kwargs.get("media")
-        self.audio = kwargs.get("audio", None)
-        self.document = kwargs.get("document", None)
-        self.photo = kwargs.get("photo", None)
-        self.video = kwargs.get("video", None)
-        self.voice = kwargs.get("voice", None)
-        self.video_note = kwargs.get("video_note", None)
-        self.chat = Chat(kwargs.get("chat_id", None))
+        self.audio = kwargs.get("audio")
+        self.document = kwargs.get("document")
+        self.photo = kwargs.get("photo")
+        self.video = kwargs.get("video")
+        self.voice = kwargs.get("voice")
+        self.video_note = kwargs.get("video_note")
+        self.chat = Chat(kwargs.get("chat_id"))
         self.date = kwargs.get("date", datetime.now(timezone.utc))
         # Set media based on type
         if self.photo:
@@ -1132,8 +1132,6 @@ class MediaDownloaderTestCase(unittest.TestCase):
         conf = {"api_id": 1, "api_hash": "a"}
         chat_conf = {"chat_id": 111, "max_messages": 0}
 
-        import asyncio
-
         import media_downloader
 
         media_downloader.DOWNLOADED_IDS[111] = [123]
@@ -1161,8 +1159,6 @@ class MediaDownloaderTestCase(unittest.TestCase):
         self, mock_process_messages, mock_update_config
     ):
         """Test that process_chat breaks mid-batch once max_messages is reached."""
-        import asyncio
-
         import media_downloader
 
         client = MockClient()
@@ -1335,8 +1331,6 @@ class MediaDownloaderTestCase(unittest.TestCase):
         self, mock_proc, mock_update
     ):
         """None/bad string/zero max_concurrent_downloads falls back to 4 with warning."""
-        import asyncio
-
         import media_downloader
 
         client = MockClient()
