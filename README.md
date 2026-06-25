@@ -337,8 +337,8 @@ proxy:
   scheme: socks5
   hostname: 11.22.33.44
   port: 1234
-  username: your_username
-  password: your_password
+  username: owowo_owowito
+  password: your_cutefa
 ```
 If your proxy doesn’t require authorization you can omit username and password. Then the proxy will automatically be enabled.
 
