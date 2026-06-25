@@ -13,6 +13,7 @@ repos:
         name: black
         entry: black
         types: [python]
+        args: ["--check"]
 -   repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
