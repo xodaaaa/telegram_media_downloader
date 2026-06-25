@@ -436,17 +436,24 @@ be refactored (extract helpers) rather than suppressed.
 - **Black**: runs with `--check` flag — only verifies formatting, never
   auto-reformats on commit. Run `python -m black .` manually before commit.
 
-## SonarCloud State
+## Code Analysis & Quality
 
-As of the last analysis:
-- **Total issues**: ~66 → ~25 (62% reduction) → current estimated ~10-12
-- **Closed**: S7637 (SHAs), S1186 (empty methods), S1481 (unused vars),
+### SonarCloud (historical)
+Previously used for issue tracking. All fixes below reference SonarCloud rule IDs.
+
+### DeepSource (current)
+Now uses DeepSource for code quality. Same principles apply.
+
+### SonarCloud State (archive)
+
+As of the last SonarCloud analysis (June 2026):
+- **Total issues found**: 66
+- **After fixes**: ~10-12 remaining (all cosmetic CSS duplication)
+- **Closed issues**: S7637 (SHAs), S1186 (empty methods), S1481 (unused vars),
   S5906 (assertTrue/False), S1940 (not-in), S1066 (merge-if),
   S3776 (NOSONAR for complex functions), S5799 (implicit concat),
   S3457 (f-string), S1656 (self-assignment), S112 (NOSONAR),
   S4144 (NOSONAR), S7503 (NOSONAR for mock functions)
-- **Remaining**: ~10 S1192 (CSS duplication) — all cosmetic, no functional
-  impact. Some already extracted as constants.
 
 ### Using `replaceAll` safely for CSS constants
 
