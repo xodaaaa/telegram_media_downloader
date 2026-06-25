@@ -228,9 +228,10 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                 }
             with chats_container:
                 with ui.element("div").classes("chat-card") as chat_card:
-                    c_inputs = {}
-                    c_inputs["card"] = chat_card
-                    c_inputs["ids_to_retry"] = chat_data.get("ids_to_retry", [])
+                    c_inputs = {
+                        "card": chat_card,
+                        "ids_to_retry": chat_data.get("ids_to_retry", []),
+                    }
 
                     with ui.row().style("gap: 12px; width: 100%; align-items: center;"):
                         c_inputs["chat_id"] = (

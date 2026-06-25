@@ -719,8 +719,7 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
             if max_messages and len(DOWNLOADED_IDS[chat_id]) >= max_messages:
                 break
             pagination_count = 0
-            messages_list = []
-            messages_list.append(message)
+            messages_list = [message]
             chat_conf["last_read_message_id"] = last_read_message_id
 
             # Checkpoint: persist progress to disk after every batch so that

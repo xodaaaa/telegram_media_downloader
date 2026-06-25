@@ -254,7 +254,7 @@ def index():  # NOSONAR
             ).props("animated") as tab_panels:
 
                 with ui.tab_panel("config").style(_PADDING_0):
-                    _global_inputs, chat_inputs = build_config_tab(config, save_config)
+                    _, chat_inputs = build_config_tab(config, save_config)
 
                 with ui.tab_panel("execution").style(_PADDING_0):
                     build_execution_tab(
