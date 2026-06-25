@@ -28,6 +28,19 @@ A meta of last read/downloaded message is stored in the config file so that in s
 |Language | `Python 3.8 ` and above|
 |Download media types|  audio, document, photo, video, video_note, voice|
 
+## 🎉 Version 3.5.0 - Monitor Mode & Enhanced Web UI
+
+### What's New:
+- **Execution Modes**: Three modes — `history` (backlog), `monitor` (real-time), `history_monitor` (backlog then auto-switch to monitor).
+- **Setup Wizard**: First-run authentication wizard guides you through API credentials, phone verification, and target chat setup — no manual config editing.
+- **Live Metrics**: Real-time speed meter (⬇ MB/s), active/queued file counter (📥 X/Y), and total GB downloaded (📦).
+- **Terminal Tab**: Dedicated 4th sidebar tab showing real-time logs from downloads and monitor mode.
+- **Account Badge**: Auto-detects Premium/Free status and shows your Telegram name.
+- **Stop Download**: Gracefully stop history downloads while saving progress.
+- **Download Delay default**: Changed from `null` to `[15, 30]` for safer rate-limiting out of the box.
+- **Enhanced Active Downloads**: Max 4 visible rows, active files first, ETA per file (e.g. "73% · 2m left"), completed files with ✓ and preview button.
+- **Performance**: Mutual exclusion between history/monitor modes, cross-mode state cleanup, progress saved on error/Ctrl+C.
+
 ## 🎉 Version 3.4.0 - Interactive Web UI
 
 ### What's New:
@@ -200,8 +213,9 @@ end_date: null    # Filter messages before this date (ISO format)
 max_messages: null  # Limit the number of media items to download (integer)
 
 # Download Pacing / Rate Limiting (optional, can also be set per-chat)
-max_concurrent_downloads: 4   # Max files downloading at once per batch (1 = fully sequential)
-download_delay: null          # Delay between files: fixed (2) or random range ([1, 5])
+max_concurrent_downloads: 4    # Max files downloading at once per batch (1 = fully sequential)
+download_delay: [15, 30]       # Delay between files: fixed (2) or random range ([1, 5]). Default: [15, 30]
+# phone: "+521234567890"       # Optional: saved by setup wizard for future re-auth
 ```
 
 | Option | Description |
@@ -221,7 +235,8 @@ download_delay: null          # Delay between files: fixed (2) or random range (
 | `end_date` | Optional: Filter messages to download only those sent before this date (ISO format). Leave `null` to disable. |
 | `max_messages` | Optional: Limit the number of media items to download (integer). Leave `null` for unlimited. |
 | `max_concurrent_downloads` | Optional: Maximum number of files downloading simultaneously per batch. Lower values reduce ban risk. `1` = fully sequential. Default: `4`. |
-| `download_delay` | Optional: Pause between starting each file download (seconds). Use a number for a fixed delay (`2`) or a list for a random range (`[1, 5]`). Leave `null` for no delay. |
+| `download_delay` | Optional: Pause between starting each file download (seconds). Use a number for a fixed delay (`2`) or a list for a random range (`[1, 5]`). Default: `[15, 30]`. Set to `null` to disable. |
+| `phone` | Optional: Phone number in international format. Saved by the Setup Wizard for future re-authentication. |
 
 ### Download Pacing / Rate Limiting
 
@@ -230,7 +245,7 @@ To reduce the risk of Telegram rate-limiting or banning your account, you can sl
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `max_concurrent_downloads` | int | `4` | Max files downloading simultaneously per batch. Set to `1` for fully sequential. |
-| `download_delay` | float \| [float, float] \| null | `null` | Pause between files. Fixed seconds (`2`) or random range (`[1, 5]`). |
+| `download_delay` | float \| [float, float] \| null | `[15, 30]` | Pause between files. Fixed seconds (`2`) or random range (`[1, 5]`). Default random 15–30s. Set to `null` to disable. |
 
 Both options can be set **globally** or **overridden per-chat**:
 
@@ -265,6 +280,26 @@ python3 webui.py
 ```
 
 This will start a local web server (usually at `http://127.0.0.1:8080`).
+
+#### First-Run Setup Wizard
+
+If this is your first time running the Web UI and you don't have `api_id`, `api_hash`, or a valid `.session` file, a **Setup Wizard** will guide you through:
+
+1. **API Credentials** — Enter your `api_id` and `api_hash` (obtained from my.telegram.org)
+2. **Phone Verification** — Enter your phone number, receive an SMS/Telegram code, and verify
+3. **Target Chat** — Enter the chat ID or @username you want to download from
+
+After completing the wizard, your `config.yaml` is automatically created with safe defaults (`download_delay: [15, 30]`, `max_concurrent_downloads: 4`, all media types enabled). You can skip the chat step and configure it later from the Configuration tab.
+
+#### Execution Modes
+
+The Web UI supports three execution modes (set via `mode` in `config.yaml`):
+
+- **Start History Download** — Downloads the full backlog of media from your chats.
+- **Start Monitoring** — Listens for new incoming messages in real time and downloads media as it arrives.
+- **History + Monitor** — Set `mode: history_monitor` in config and use "Start History Download". After the backlog completes, it automatically switches to monitor mode.
+
+Both modes respect `download_delay` and `max_concurrent_downloads` settings. While running, a **Stop** button appears to gracefully disconnect and save progress.
 
 📚 **[Click here to read the full Web UI Getting Started Guide](docs/GETTING_STARTED_WEBUI.md)** to see screenshots of the Configuration, Execution, and History tabs.
 
