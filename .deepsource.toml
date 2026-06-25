@@ -1,0 +1,35 @@
+version = 1
+
+test_patterns = ["tests/**"]
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+  [analyzers.meta]
+  runtime_version = "3.8"
+
+  [[analyzers.rules]]
+  code = "PYL-R0201"
+  [analyzers.rules.meta]
+  exclude_patterns = ["tests/**"]
+
+  [[analyzers.rules]]
+  code = "PTC-W0065"
+  [analyzers.rules.meta]
+  exclude_patterns = ["webui/**"]
+
+  [[analyzers.rules]]
+  code = "PTC-W0062"
+  [analyzers.rules.meta]
+  exclude_patterns = ["webui/**"]
+
+  [[analyzers.rules]]
+  code = "PYL-W0108"
+  [analyzers.rules.meta]
+  exclude_patterns = ["webui/**"]
+
+  [[analyzers.rules]]
+  code = "PYL-E1102"
+  [analyzers.rules.meta]
+  exclude_patterns = ["webui/execution_tab.py", "tests/**"]

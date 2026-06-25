@@ -165,7 +165,8 @@ class MockEventLoop:
     def __init__(self):
         """Mock event loop; no initialization needed."""
 
-    def run_until_complete(self, *args, **kwargs):
+    @staticmethod
+    def run_until_complete(*args, **kwargs):
         return {
             "api_id": 1,
             "api_hash": "asdf",
@@ -178,7 +179,8 @@ class MockAsync:
     def __init__(self):
         """Mock asyncio module; no initialization needed."""
 
-    def get_event_loop(self):
+    @staticmethod
+    def get_event_loop():
         return MockEventLoop()
 
 

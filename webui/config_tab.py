@@ -35,7 +35,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
         ``(global_inputs, chat_inputs)`` — references other tabs may need.
     """
     global_inputs = {}
-    chat_inputs = []
+    chat_inputs: list = []
 
     # Page Header
     with ui.column().style("gap: 2px; margin-bottom: 28px; align-items: center;"):

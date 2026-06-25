@@ -2,7 +2,6 @@
 
 import sys
 import unittest
-from unittest import mock
 
 sys.path.append("..")  # Adds higher directory to python modules path.
 from utils.log import LogFilter

@@ -153,7 +153,7 @@ def index():  # NOSONAR
             with ui.column().style("gap: 8px; padding: 0 4px;"):
                 ui.html('<hr class="divider" style="margin: 0;">')
                 ui.button(
-                    "Take Tour", on_click=show_tour, icon="school"
+                    "Take Tour", on_click=lambda: show_tour(), icon="school"
                 ).props("flat dense color=grey-7").style(
                     "width: 100%; justify-content: flex-start;"
                     " font-size: 13px; padding: 6px 12px;"
