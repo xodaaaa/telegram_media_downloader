@@ -2,18 +2,17 @@
 <h1 align="center">Telegram Media Downloader</h1>
 
 <p align="center">
-<a href="https://github.com/Dineshkarthik/telegram_media_downloader/actions"><img alt="Unittest" src="https://github.com/Dineshkarthik/telegram_media_downloader/workflows/Unittest/badge.svg"></a>
-<a href="https://codecov.io/gh/Dineshkarthik/telegram_media_downloader"><img alt="Coverage Status" src="https://codecov.io/gh/Dineshkarthik/telegram_media_downloader/branch/master/graph/badge.svg"></a>
-<a href="https://github.com/Dineshkarthik/telegram_media_downloader/blob/master/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
+<a href="https://github.com/xodaaaa/telegram_media_downloader/actions"><img alt="Unittest" src="https://github.com/xodaaaa/telegram_media_downloader/workflows/Unittest/badge.svg"></a>
+<a href="https://github.com/xodaaaa/telegram_media_downloader/blob/master/LICENSE"><img alt="License: MIT" src="https://black.readthedocs.io/en/stable/_static/license.svg"></a>
 <a href="https://github.com/python/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
 
 <h3 align="center">
-  <a href="https://github.com/Dineshkarthik/telegram_media_downloader/discussions/categories/ideas">Feature request</a>
+  <a href="https://github.com/xodaaaa/telegram_media_downloader/discussions/categories/ideas">Feature request</a>
   <span> · </span>
-  <a href="https://github.com/Dineshkarthik/telegram_media_downloader/issues">Report a bug</a>
+  <a href="https://github.com/xodaaaa/telegram_media_downloader/issues">Report a bug</a>
   <span> · </span>
-  Support: <a href="https://github.com/Dineshkarthik/telegram_media_downloader/discussions">Discussions</a>
+  Support: <a href="https://github.com/xodaaaa/telegram_media_downloader/discussions">Discussions</a>
   <span> & </span>
   <a href="https://t.me/tgmdnews">Telegram Community</a>
 </h3>
@@ -87,14 +86,14 @@ If you're upgrading from a previous version:
 #### CLI-Only Installation (Recommended)
 For *nix OS distributions:
 ```sh
-git clone https://github.com/Dineshkarthik/telegram_media_downloader.git
+git clone https://github.com/xodaaaa/telegram_media_downloader.git
 cd telegram_media_downloader
 make install
 ```
 
 For Windows or systems without `make`:
 ```sh
-git clone https://github.com/Dineshkarthik/telegram_media_downloader.git
+git clone https://github.com/xodaaaa/telegram_media_downloader.git
 cd telegram_media_downloader
 pip3 install -r requirements.txt
 ```
@@ -119,7 +118,7 @@ pip3 install -r requirements-webui.txt
 For contributors and developers who need additional development tools:
 
 ```sh
-git clone https://github.com/Dineshkarthik/telegram_media_downloader.git
+git clone https://github.com/xodaaaa/telegram_media_downloader.git
 cd telegram_media_downloader
 make dev_install  # Installs both runtime and development dependencies
 ```
@@ -344,10 +343,10 @@ If your proxy doesn’t require authorization you can omit username and password
 
 ## Contributing
 ### Contributing Guidelines
-Read through our [contributing guidelines](https://github.com/Dineshkarthik/telegram_media_downloader/blob/master/CONTRIBUTING.md) to learn about our submission process, coding rules and more.
+Read through our [contributing guidelines](https://github.com/xodaaaa/telegram_media_downloader/blob/master/CONTRIBUTING.md) to learn about our submission process, coding rules and more.
 
 ### Want to Help?
-Want to file a bug, contribute some code, or improve documentation? Excellent! Read up on our guidelines for [contributing](https://github.com/Dineshkarthik/telegram_media_downloader/blob/master/CONTRIBUTING.md).
+Want to file a bug, contribute some code, or improve documentation? Excellent! Read up on our guidelines for [contributing](https://github.com/xodaaaa/telegram_media_downloader/blob/master/CONTRIBUTING.md).
 
 ### Code of Conduct
-Help us keep Telegram Media Downloader open and inclusive. Please read and follow our [Code of Conduct](https://github.com/Dineshkarthik/telegram_media_downloader/blob/master/CODE_OF_CONDUCT.md).
+Help us keep Telegram Media Downloader open and inclusive. Please read and follow our [Code of Conduct](https://github.com/xodaaaa/telegram_media_downloader/blob/master/CODE_OF_CONDUCT.md).
