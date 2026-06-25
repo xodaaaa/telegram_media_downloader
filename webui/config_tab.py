@@ -251,9 +251,14 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                             .props(_OUTLINED_DENSE)
                         )
 
-                        def remove_me(card=chat_card, inputs=c_inputs):
-                            chats_container.remove(card)
-                            chat_inputs.remove(inputs)
+                        def _make_remove_me(card, inputs):
+                            def _remove():
+                                chats_container.remove(card)
+                                chat_inputs.remove(inputs)
+
+                            return _remove
+
+                        remove_me = _make_remove_me(chat_card, c_inputs)
 
                         ui.button(icon="close", on_click=remove_me).props(
                             "flat dense round size=sm color=grey"
