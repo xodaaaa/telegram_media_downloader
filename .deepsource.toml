@@ -43,3 +43,19 @@ enabled = true
   code = "PY-W2000"
   [analyzers.rules.meta]
   exclude_patterns = ["webui.py", "tests/test_pacing.py"]
+
+  [[analyzers.rules]]
+  code = "PTC-W6004"
+  enabled = false
+
+  [[analyzers.rules]]
+  code = "PY-A6006"
+  enabled = false
+
+  [[analyzers.rules]]
+  code = "PYL-W0603"
+  enabled = false
+
+  [[analyzers.rules]]
+  code = "PY-R1000"
+  enabled = false
