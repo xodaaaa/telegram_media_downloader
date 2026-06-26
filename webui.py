@@ -56,7 +56,14 @@ def index():  # NOSONAR
 
     # ── First-run / auth detection ──
     session_exists = os.path.exists(os.path.join(THIS_DIR, "media_downloader.session"))
-    has_api = bool(config.get("api_id") and config.get("api_hash"))
+
+    def _valid_api(cfg):
+        try:
+            return bool(int(cfg.get("api_id", 0)) and cfg.get("api_hash", ""))
+        except (TypeError, ValueError):
+            return False
+
+    has_api = _valid_api(config)
     has_chat = bool(config.get("chats") or config.get("chat_id"))
 
     if not has_api:
