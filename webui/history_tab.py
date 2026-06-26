@@ -79,22 +79,6 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
                 on_click=clear_history,
                 icon="delete_outline",
             ).props("flat dense color=negative").style(_FONT_13)
-            ui.button(
-                "Refresh",
-                on_click=lambda: load_history(),
-                icon="refresh",
-            ).props("flat dense color=grey-7").style(_FONT_13)
-
-            refresh_interval = (
-                ui.select(
-                    [2, 5, 10, 30, 60],
-                    value=2,
-                    label="seconds",
-                )
-                .props("dense")
-                .style("width: 80px;")
-            )
-            refresh_toggle = ui.switch(value=True).props("dense")
 
         # ── Table ──
         columns = [
@@ -261,16 +245,6 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
                 "flat dense round color=grey-7"
             )
 
-        # ── Auto-refresh timer ──
-        refresh_counter = {"ticks": 0}
-
-        def _auto_refresh():
-            if refresh_toggle.value:
-                refresh_counter["ticks"] += 1
-                if refresh_counter["ticks"] >= refresh_interval.value:
-                    refresh_counter["ticks"] = 0
-                    load_history()
-
-        ui.timer(1.0, _auto_refresh)
+        ui.timer(5.0, load_history)
 
         load_history()

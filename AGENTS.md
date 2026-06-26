@@ -188,10 +188,9 @@ The UI is a single-page app using NiceGUI's declarative layout:
 ### Tab: History (`webui/history_tab.py`)
 - Search, type filter, column sorting, pagination (20 items/page).
 - **Total downloaded** label at top, auto-refreshes every 2s.
-- **Auto-refresh toggle**: switch ON/OFF + configurable interval (2, 5, 10,
-  30, 60s) next to Refresh button in filters row. Default ON every 2s.
-  Counter-based implementation (ticks every 1s, executes when counter
-  reaches interval).
+- **Fixed 5s auto-refresh**: `ui.timer(5.0, load_history)` — no manual
+  controls, always active. Removed Refresh button, interval selector, and
+  ON/OFF toggle for simplicity.
 - "Open" preview via modal dialog (supports images, videos, audio, PDFs).
 - "Clear All" resets the history DB.
 - **CSS constant**: `_FONT_13 = "font-size: 13px;"` — SonarCloud S1192.
