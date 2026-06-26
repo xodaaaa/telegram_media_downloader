@@ -188,6 +188,10 @@ The UI is a single-page app using NiceGUI's declarative layout:
 ### Tab: History (`webui/history_tab.py`)
 - Search, type filter, column sorting, pagination (20 items/page).
 - **Total downloaded** label at top, auto-refreshes every 2s.
+- **Auto-refresh toggle**: switch ON/OFF + configurable interval (2, 5, 10,
+  30, 60s) next to Refresh button in filters row. Default ON every 2s.
+  Counter-based implementation (ticks every 1s, executes when counter
+  reaches interval).
 - "Open" preview via modal dialog (supports images, videos, audio, PDFs).
 - "Clear All" resets the history DB.
 - **CSS constant**: `_FONT_13 = "font-size: 13px;"` — SonarCloud S1192.
@@ -228,6 +232,31 @@ The UI is a single-page app using NiceGUI's declarative layout:
   override to silence `GeneratorExit` exceptions from Python 3.13.
 
 ### Setup Wizard (`webui/setup_wizard.py`)
+- **State detection** (in `webui.py`):
+  - Uses `_valid_api()` helper that validates `api_id` is a real integer
+    (avoids false positive from `config.yaml.example` placeholder `your_api_id`)
+  - No API creds → full wizard (Steps 1→2→3)
+  - No `.session` file → phone re-auth only (Step 2)
+  - No `chat_id` → chat input only (Step 3)
+  - All present → normal UI, no wizard
+- **Step 1 — API Credentials**: `api_id` (number) + `api_hash` (text with 👁
+  toggle). Validates both are non-empty. Link to my.telegram.org for new users.
+- **Step 2 — Phone Verification**: `phone` input (international format) → "Send
+  Code" button calls `media_downloader.send_auth_code()` → shows spinner →
+  `code` input → "Verify" calls `media_downloader.verify_auth_code()`.
+  On success: saves `phone` to config, advances to Step 3.
+- **Step 3 — Target Chat**: `chat_id`/`@username` input. Options to "Skip" or
+  "Finish". On Finish: saves `chat_id`, `chats` list, defaults for
+  `download_delay: [15, 30]`, `max_concurrent_downloads: 4`,
+  `media_types`, and `file_formats`.
+- **Style constants**: `_PROPS_DENSE`, `_GAP_8`, `_COLOR_NEG`, `_COLOR_POS`,
+  `_COLOR_SEC`, `_FLAT_GREY`, `_FONT_13`, `_TEXT_SUBTITLE` — extracted to
+  module level (SonarCloud S1192 fix).
+- **Helpers**: `_step_color(active, past)`, `_set_result(text, style)` — reduce
+  cognitive complexity (SonarCloud S3776/S3358 fix).
+- The `_safe_int()` helper handles non-numeric `api_id` values from
+  `config.yaml.example` (e.g. `api_id: your_api_id`) which would crash a
+  `ui.number` input.
 - **Purpose**: guides first-time users through 3-step authentication setup
   without requiring manual `config.yaml` editing.
 - **State detection** (in `webui.py`):
