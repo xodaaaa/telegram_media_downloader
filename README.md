@@ -101,12 +101,13 @@ All modes respect `download_delay` and `max_concurrent_downloads`.
 
 ## 🖥️ Web UI Tabs
 
-| Tab | What you do |
+| Configuration | Execution |
 |---|---|
-| **Configuration** | Edit API keys, download settings, target chats |
-| **Execution** | Start/stop downloads or monitoring. Live metrics (speed, backlog, total GB) |
-| **History** | Browse downloaded files with search, filters, preview |
-| **Terminal** | Real-time log output from downloads and monitor |
+| ![API keys, download settings, target chats](docs/assets/Configuration.PNG) | ![Live metrics, active downloads, monitoring](docs/assets/Execution.PNG) |
+
+| History | Terminal |
+|---|---|
+| ![Browse files with search, filters, preview](docs/assets/History.PNG) | ![Real-time logs from downloads and monitor](docs/assets/Terminal.PNG) |
 
 ---
 
