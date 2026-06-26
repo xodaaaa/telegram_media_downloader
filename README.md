@@ -18,14 +18,18 @@ the same file twice. **Python 3.8+** · CLI + Web UI.
 ```sh
 git clone https://github.com/xodaaaa/telegram_media_downloader.git
 cd telegram_media_downloader
-pip install -r requirements.txt    # CLI only
-pip install -r requirements-webui.txt  # + Web UI (Python 3.10+)
+pip install -r requirements.txt          # CLI only
+pip install -r requirements-webui.txt    # + Web UI (Python 3.10+)
+copy config.yaml.example config.yaml     # Windows
+cp config.yaml.example config.yaml       # Linux / macOS
 
-python webui.py                    # Opens http://localhost:8080
+python webui.py                          # Opens http://localhost:8080
 ```
 
-The **Setup Wizard** guides you through API credentials, phone verification,
-and target chat selection. No manual config editing needed.
+The **Web UI** is the recommended way to use the downloader. If it's your first
+time, the **Setup Wizard** guides you through API credentials, phone
+verification, and target chat selection — no manual config editing needed.
+You can also run the CLI directly with `python media_downloader.py`.
 
 ---
 
