@@ -204,7 +204,11 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
                     {
                         "id": r["id"],
                         "download_timestamp": r["download_timestamp"],
-                        "chat_display": r.get("chat_title") or r["chat_id"],
+                        "chat_display": (
+                            f"{r['chat_title']} ({r['chat_id']})"
+                            if r.get("chat_title")
+                            else str(r["chat_id"])
+                        ),
                         "chat_id": r["chat_id"],
                         "file_name": r["file_name"],
                         "size_mb": f"{MB:.2f}",
