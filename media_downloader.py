@@ -46,6 +46,9 @@ PENDING_IDS: dict = {}
 BACKLOG_ITERATED: dict = {}
 BACKLOG_DONE: dict = {}
 
+# Resolved chat titles for display in download history
+CHAT_TITLES: dict = {}
+
 VALID_MODES = ("history", "monitor", "history_monitor")
 
 # Global hook for Web UI to receive progress updates
@@ -428,6 +431,7 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                         actual_size,
                         abs_path,
                         _type,
+                        CHAT_TITLES.get(str(chat_id)),
                     )
                     if UI_PROGRESS_HOOK is not None:
                         # Optional signature expansion for UI logic
@@ -632,6 +636,20 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
     BACKLOG_ITERATED.setdefault(chat_id, 0)
     BACKLOG_DONE.setdefault(chat_id, 0)
 
+    # Resolve chat title once for history display
+    if str(chat_id) not in CHAT_TITLES:
+        try:
+            entity = await client.get_entity(chat_id)
+            title = (
+                getattr(entity, "title", None)
+                or getattr(entity, "first_name", None)
+                or ""
+            )
+            if title:
+                CHAT_TITLES[str(chat_id)] = title
+        except Exception:
+            CHAT_TITLES[str(chat_id)] = ""
+
     CURRENT_BATCH_IDS[chat_id] = []
 
     # Merge chat-specific config with global fallback
@@ -797,6 +815,21 @@ async def register_monitor_handler(  # NOSONAR
     """
     chat_id = chat_conf["chat_id"]
     settings = _resolve_monitor_settings(global_config, chat_conf)
+
+    # Resolve chat title once for history display
+    if str(chat_id) not in CHAT_TITLES:
+        try:
+            entity = await client.get_entity(chat_id)
+            title = (
+                getattr(entity, "title", None)
+                or getattr(entity, "first_name", None)
+                or ""
+            )
+            if title:
+                CHAT_TITLES[str(chat_id)] = title
+        except Exception:
+            CHAT_TITLES[str(chat_id)] = ""
+
     semaphore = asyncio.Semaphore(max(1, settings["max_concurrent_downloads"]))
     download_delay = chat_conf.get(
         "download_delay", global_config.get("download_delay", 20)

@@ -92,7 +92,7 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
             {
                 "name": "chat",
                 "label": "Chat",
-                "field": "chat_id",
+                "field": "chat_display",
                 "sortable": True,
                 "align": "left",
             },
@@ -204,6 +204,7 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
                     {
                         "id": r["id"],
                         "download_timestamp": r["download_timestamp"],
+                        "chat_display": r.get("chat_title") or r["chat_id"],
                         "chat_id": r["chat_id"],
                         "file_name": r["file_name"],
                         "size_mb": f"{MB:.2f}",

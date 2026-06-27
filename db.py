@@ -45,6 +45,10 @@ def init_db():
                 cursor.execute(
                     "ALTER TABLE download_history ADD COLUMN media_type TEXT"
                 )
+            if "chat_title" not in columns:
+                cursor.execute(
+                    "ALTER TABLE download_history ADD COLUMN chat_title TEXT"
+                )
 
             # Create an index for faster queries on recent downloads
             cursor.execute(
@@ -70,6 +74,7 @@ def record_download(
     file_size: int,
     file_path: Optional[str] = None,
     media_type: Optional[str] = None,
+    chat_title: Optional[str] = None,
 ):
     """Record a successful download in the history table."""
     _ensure_db()
@@ -78,10 +83,18 @@ def record_download(
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO download_history (chat_id, message_id, file_name, file_size, file_path, media_type)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO download_history (chat_id, message_id, file_name, file_size, file_path, media_type, chat_title)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-                (str(chat_id), message_id, file_name, file_size, file_path, media_type),
+                (
+                    str(chat_id),
+                    message_id,
+                    file_name,
+                    file_size,
+                    file_path,
+                    media_type,
+                    chat_title,
+                ),
             )
             conn.commit()
     except Exception:
@@ -194,7 +207,7 @@ def get_recent_downloads(
             # Map valid sort columns to prevent SQL injection
             valid_sort_cols = {
                 "timestamp": "download_timestamp",
-                "chat": "chat_id",
+                "chat": "COALESCE(chat_title, chat_id)",
                 "filename": "file_name",
                 "size": "file_size",
                 "media_type": "media_type",
@@ -203,12 +216,13 @@ def get_recent_downloads(
                 "chat_id": "chat_id",
                 "file_name": "file_name",
                 "size_mb": "file_size",
+                "chat_display": "COALESCE(chat_title, chat_id)",
             }
             order_col = valid_sort_cols.get(sort_by, "download_timestamp")
             order_dir = "DESC" if sort_desc else "ASC"
 
             query = """
-                SELECT id, chat_id, message_id, file_name, file_size, download_timestamp, file_path, media_type
+                SELECT id, chat_id, message_id, file_name, file_size, download_timestamp, file_path, media_type, chat_title
                 FROM download_history
                 WHERE 1=1
             """

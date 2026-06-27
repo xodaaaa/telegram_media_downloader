@@ -431,6 +431,7 @@ def build_execution_tab(  # NOSONAR
         media_downloader.CURRENT_BATCH_IDS.clear()
         media_downloader.BACKLOG_ITERATED.clear()
         media_downloader.BACKLOG_DONE.clear()
+        media_downloader.CHAT_TITLES.clear()
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -520,6 +521,7 @@ def build_execution_tab(  # NOSONAR
         media_downloader.CURRENT_BATCH_IDS.clear()
         media_downloader.BACKLOG_ITERATED.clear()
         media_downloader.BACKLOG_DONE.clear()
+        media_downloader.CHAT_TITLES.clear()
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
