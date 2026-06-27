@@ -221,7 +221,7 @@ def build_tour(current_page: dict, tab_panels, nav_items: list):  # NOSONAR
         ``(show_tour, check_first_visit)`` functions.
     """
     tour_panel = ui.element("div").style(
-        "position: fixed; bottom: 24px; right: 24px; z-index: 9999; "
+        "position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; "
         "width: 420px; max-width: calc(100vw - 320px); "
         "background: var(--surface); border: 1px solid var(--border); "
         "border-radius: var(--radius-xl); box-shadow: var(--shadow-lg); "
