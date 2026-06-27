@@ -59,7 +59,7 @@ class _ErrorCaptureHandler(logging.Handler):
 
 
 _error_handler = _ErrorCaptureHandler()
-_error_handler.setLevel(logging.ERROR)
+_error_handler.setLevel(logging.WARNING)
 logger.addHandler(_error_handler)
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
