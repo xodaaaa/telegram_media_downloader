@@ -110,6 +110,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
 
         with ui.dialog() as browse_dialog, ui.card().style(
             "width: 600px; max-width: 90vw; border-radius: var(--radius-xl);"
+            " margin: auto;"
         ):
             with ui.row().classes("items-center justify-between").style(
                 "padding: 16px 20px; border-bottom: 1px solid var(--border);"

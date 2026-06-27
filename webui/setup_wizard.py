@@ -78,6 +78,7 @@ def build_setup_wizard(  # NOSONAR
     with ui.dialog().props("persistent") as wizard_dialog, ui.card().style(
         "width: 480px; max-width: 90vw; border-radius: var(--radius-xl);"
         " overflow: hidden; background: var(--surface);"
+        " margin: auto;"
         " border: 1px solid var(--border);"
     ):
         # Header
