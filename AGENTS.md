@@ -27,6 +27,7 @@ preview.
   - `PROCESSED_IDS` / `CURRENT_BATCH_IDS` — transient batch tracking for safe resumption.
   - `PENDING_IDS` — number of files currently downloading per chat (used by UI).
   - `BACKLOG_ITERATED` / `BACKLOG_DONE` — backlog counters for history mode UI.
+  - `CHAT_TITLES` — resolved chat display names (set once per chat, used by History tab).
   - `UI_PROGRESS_HOOK` — callback set by Web UI to receive real-time progress.
 - **Persistence**: `update_config()` saves `FAILED_IDS` into `ids_to_retry` and
   writes the whole `config.yaml` after every batch (or on stop). Uses set
@@ -64,12 +65,17 @@ Key functions implementing these modes:
 - `check_account_premium(config)` — connects briefly, calls `client.get_me()`,
   and returns `{premium, first_name, last_name, username}`. Used by the Web UI
   badge.
+- `resolve_chat_entity(api_id, api_hash, chat_id)` — creates a temporary
+  client, connects, resolves a chat ID/@username to its display name, then
+  disconnects. Returns the name as `str` or `None`. Used by Verify buttons
+  in the wizard and config tab.
 - `send_auth_code(api_id, api_hash, phone)` — creates a client, connects,
   requests an SMS code, and returns `{phone_code_hash, client}`. Used by the
   setup wizard for first-run phone verification.
 - `verify_auth_code(client, phone, code, phone_code_hash)` — verifies the SMS
-  code, calls `client.sign_in()`, creates the `.session` file, and disconnects.
-  Returns `True` on success.
+  code, calls `client.sign_in()`, creates the `.session` file. Returns
+  `True` on success. **Does NOT disconnect the client** (kept alive for
+  subsequent wizard steps like chat verification).
 - `_resolve_download_delay(download_delay)` — parses and computes a download
   delay value from config (fixed float, random range `[min, max]`, or `None`).
   Centralized helper used by both `process_messages` (history) and
@@ -246,7 +252,7 @@ The UI is a single-page app using NiceGUI's declarative layout:
   On success: saves `phone` to config, advances to Step 3.
 - **Step 3 — Target Chat**: `chat_id`/`@username` input. Options to "Skip" or
   "Finish". On Finish: saves `chat_id`, `chats` list, defaults for
-  `download_delay: [15, 30]`, `max_concurrent_downloads: 4`,
+  `download_delay: 20`, `max_concurrent_downloads: 1`,
   `media_types`, and `file_formats`.
 - **Style constants**: `_PROPS_DENSE`, `_GAP_8`, `_COLOR_NEG`, `_COLOR_POS`,
   `_COLOR_SEC`, `_FLAT_GREY`, `_FONT_13`, `_TEXT_SUBTITLE` — extracted to
@@ -271,7 +277,7 @@ The UI is a single-page app using NiceGUI's declarative layout:
   On success: saves `phone` to config, advances to Step 3.
 - **Step 3 — Target Chat**: `chat_id`/`@username` input. Options to "Skip" or
   "Finish". On Finish: saves `chat_id`, `chats` list, defaults for
-  `download_delay: [15, 30]`, `max_concurrent_downloads: 4`,
+  `download_delay: 20`, `max_concurrent_downloads: 1`,
   `media_types`, and `file_formats`.
 - **Style constants**: `_PROPS_DENSE`, `_GAP_8`, `_COLOR_NEG`, `_COLOR_POS`,
   `_COLOR_SEC`, `_FLAT_GREY`, `_FONT_13`, `_TEXT_SUBTITLE` — extracted to
@@ -328,8 +334,8 @@ safer rate-limiting out of the box.
 
 1. **Async & Telethon**: All core logic is `async`/`await`. Use native
    `asyncio` patterns.
-2. **Rate Limiting**: `max_concurrent_downloads` (default 4) + `download_delay`
-   (default `[15, 30]` — random 15–30s between files).
+2. **Rate Limiting**: `max_concurrent_downloads` (default 1) + `download_delay`
+   (default 20s).
 3. **Graceful Exits**: KeyboardInterrupt → stops fetching, calculates
    safe `last_read_message_id`, flushes config. Web UI Stop buttons
    disconnect the client gracefully and call `update_config()` in `finally`.
@@ -412,6 +418,33 @@ late binding. **Reverted.** Same applies to `load_history` in
 Use `# NOSONAR` sparingly — only for intentional false positives, NOT
 to suppress real issues. Functions with genuine high complexity should
 be refactored (extract helpers) rather than suppressed.
+
+### 0-byte files left by interrupted downloads
+Stopping mid-download left 0-byte files that `_is_exist()` treated as
+"existing", causing re-downloads to go to `-copyN` names.
+**Fix**: `_is_exist()` returns False for 0-byte files. `_cleanup_partial()`
+removes zero-byte files after TimeoutError and general exceptions in
+`download_media()`.
+
+### Stale UI_PROGRESS_HOOK crashing downloads
+When running CLI or after NiceGUI reload, `UI_PROGRESS_HOOK` still
+referenced deleted DOM elements, causing `RuntimeError` on every
+`_progress_callback`. Each download failed as a result.
+**Fix**: `_progress_callback` catches `RuntimeError` on hook call,
+disables `UI_PROGRESS_HOOK = None` on first failure, and logs a warning.
+
+### Database locked on session file
+`resolve_chat_entity()` used `client.start()` which writes to
+`media_downloader.session`. If monitor/download was concurrently running,
+SQLite file-lock contention froze verification.
+**Fix**: `connect()` instead of `start()` (lighter). Wizard reuses
+connected client from step 2 instead of creating new one.
+
+### Chat verification hanging
+`asyncio.ensure_future()` in button handlers didn't run reliably in
+NiceGUI's event loop within dialog context.
+**Fix**: Changed to `async def` on_click handler directly, with
+`asyncio.wait_for(..., timeout=8.0)` preventing indefinite hangs.
 
 ## Development & Testing
 
@@ -519,7 +552,7 @@ The `.deepsource.toml` suppresses these rules as false positives:
 | `PYL-R0201` | 2 | `@staticmethod` on `get_event_loop` and `run_until_complete` (safe — not overrides) |
 | `PY-W2000` | 3 | Removed unused `mock`, `Markdown`, `os` imports |
 | `TYP-068` | 1 | `chat_inputs: list = []` type hint |
-| `PYL-W0612` | 1 | `_global_inputs` prefixed (already done) |
+| `PYL-W0612` | 4 | `_global_inputs` prefixed; `_verify_btn`, `_browse_btn` in webui |
 | `PY-W0070/PY-W0072` | — | Skipped (intentional patterns in NiceGUI code) |
 | `PY-R1000` | — | Skipped (already handled with `# NOSONAR`) |
 | `PYL-W0603` | — | Skipped (`global _db_initialized` needed in db.py) |
