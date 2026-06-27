@@ -214,13 +214,26 @@ def _progress_callback(current: int, total: int, pbar: tqdm) -> None:
     pbar: tqdm
         Progress bar instance to update.
     """
+    global UI_PROGRESS_HOOK
+
     if pbar.total != total:
         pbar.total = total
         pbar.reset()
     pbar.update(current - pbar.n)
 
     if UI_PROGRESS_HOOK is not None:
-        UI_PROGRESS_HOOK(pbar.desc, current, total)
+        try:
+            UI_PROGRESS_HOOK(pbar.desc, current, total)
+        except RuntimeError:
+            UI_PROGRESS_HOOK = None
+            logger.warning(
+                "UI progress hook disconnected; running in headless mode."
+            )
+        except Exception:
+            UI_PROGRESS_HOOK = None
+            logger.warning(
+                "UI progress hook failed; disabling for remainder of session."
+            )
 
 
 async def _get_media_meta(  # NOSONAR
