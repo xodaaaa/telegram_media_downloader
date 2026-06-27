@@ -1,6 +1,11 @@
 """Configuration tab UI for the Telegram Media Downloader Web UI."""
 
+import os
+import string
+
 from nicegui import ui
+
+import media_downloader
 
 _OUTLINED_DENSE = "outlined dense"
 _PADDING_24_MB_20 = "padding: 24px; margin-bottom: 20px;"
@@ -96,6 +101,92 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                 .classes("col")
                 .props('outlined dense hint="Leave empty to use app directory"')
             )
+            browse_btn = (
+                ui.button(icon="folder_open", on_click=lambda: browse_dialog.open())
+                .props("flat dense round color=grey-7")
+                .style("margin-top: 18px;")
+            )
+
+        with ui.dialog() as browse_dialog, ui.card().style(
+            "width: 500px; max-width: 90vw; border-radius: var(--radius-xl);"
+        ):
+            with ui.row().classes("items-center justify-between").style(
+                "padding: 16px 20px; border-bottom: 1px solid var(--border);"
+            ):
+                ui.label("Select Download Directory").style(
+                    "font-size: 16px; font-weight: 700; color: var(--text-primary);"
+                )
+                ui.button(icon="close", on_click=browse_dialog.close).props(
+                    "flat dense round color=grey-6"
+                )
+            current_path = ui.label("").style(
+                "font-size: 12px; color: var(--text-secondary);"
+                " padding: 8px 20px; word-break: break-all;"
+            )
+            dir_list = ui.column().style(
+                "max-height: 300px; overflow-y: auto; padding: 0 8px; gap: 2px;"
+            )
+            with ui.row().style(
+                "padding: 12px 20px; border-top: 1px solid var(--border);"
+                " justify-content: flex-end; gap: 8px;"
+            ):
+                ui.button("Select", on_click=lambda: _select_folder()).props(
+                    'unelevated color="primary"'
+                ).style("font-size: 13px; padding: 4px 20px;")
+                ui.button("Cancel", on_click=browse_dialog.close).props(
+                    "flat dense color=grey-7"
+                ).style("font-size: 13px;")
+
+            browse_state = {"path": ""}
+
+            def _populate_dir():
+                dir_list.clear()
+                p = browse_state["path"]
+                current_path.set_text(p or "(root)")
+                if not p:
+                    if os.name == "nt":
+                        drives = [
+                            f"{d}:\\"
+                            for d in string.ascii_uppercase
+                            if os.path.exists(f"{d}:\\")
+                        ]
+                        for d in drives:
+                            _add_dir_entry(d, d)
+                    else:
+                        _add_dir_entry("/", "/")
+                    return
+                try:
+                    entries = sorted(os.listdir(p))
+                except OSError:
+                    return
+                parent = os.path.dirname(p)
+                if parent != p:
+                    _add_dir_entry("..", parent)
+                for entry in entries:
+                    full = os.path.join(p, entry)
+                    if os.path.isdir(full):
+                        _add_dir_entry(entry, full)
+
+            def _add_dir_entry(name, full_path):
+                with dir_list:
+                    ui.button(name, on_click=lambda fp=full_path: _navigate(fp)).props(
+                        "flat dense color=grey-8"
+                    ).style(
+                        "width: 100%; justify-content: flex-start;"
+                        " font-size: 13px; text-align: left;"
+                    )
+
+            def _navigate(fp):
+                browse_state["path"] = fp
+                _populate_dir()
+
+            def _select_folder():
+                selected = browse_state["path"]
+                if selected:
+                    global_inputs["download_dir"].set_value(selected)
+                browse_dialog.close()
+
+            _populate_dir()
 
         with ui.row().style(_GAP_16_W100_MB_16):
             global_inputs["start_date"] = (
@@ -122,7 +213,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
             global_inputs["max_concurrent"] = (
                 ui.number(
                     "Max Concurrent",
-                    value=config.get("max_concurrent_downloads", 4),
+                    value=config.get("max_concurrent_downloads", 1),
                     format="%.0f",
                 )
                 .classes("col")
@@ -263,6 +354,21 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
 
                         ui.button(icon="close", on_click=remove_me).props(
                             "flat dense round size=sm color=grey"
+                        )
+
+                    with ui.row().style("gap: 8px; align-items: center;"):
+                        verify_btn = (
+                            ui.button(
+                                "Verify Chat",
+                                on_click=lambda c_in=c_inputs: _verify_chat_config(
+                                    c_in
+                                ),
+                            )
+                            .props("flat dense color=info size=sm")
+                            .style("font-size: 11px;")
+                        )
+                        c_inputs["verify_label"] = ui.label("").style(
+                            "font-size: 11px; font-weight: 500;"
                         )
 
                     with ui.expansion("Advanced Overrides", icon="tune").props(
@@ -443,6 +549,31 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
         ui.button("Add Chat", on_click=lambda: add_chat_ui(), icon="add").props(
             "flat dense color=primary"
         ).style("margin-top: 8px; font-size: 13px;")
+
+    async def _verify_chat_config(c_inputs):
+        chat_val = str(c_inputs["chat_id"].value or "").strip()
+        verify_lbl = c_inputs["verify_label"]
+        if not chat_val:
+            verify_lbl.set_text("Enter a chat ID or @username first.")
+            verify_lbl.style("color: var(--text-tertiary);")
+            return
+        verify_lbl.set_text("Verifying...")
+        verify_lbl.style("color: var(--text-secondary);")
+        try:
+            chat_id_val = int(chat_val)
+        except ValueError:
+            chat_id_val = chat_val
+        name = await media_downloader.resolve_chat_entity(
+            config.get("api_id", 0),
+            config.get("api_hash", ""),
+            chat_id_val,
+        )
+        if name:
+            verify_lbl.set_text(f"Found: {name}")
+            verify_lbl.style("color: var(--positive);")
+        else:
+            verify_lbl.set_text("Could not resolve. Check the ID/username.")
+            verify_lbl.style("color: var(--negative);")
 
     # ── Save / Reload Actions ──
     def do_save():

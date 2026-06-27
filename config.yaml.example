@@ -60,8 +60,8 @@ max_messages: null
 # Download Pacing / Rate Limiting (optional, can also be set per-chat)
 # Max number of files downloading simultaneously within each batch.
 # Lower values = slower but safer.  1 = fully sequential.  Default: 4
-max_concurrent_downloads: 4
+max_concurrent_downloads: 1
 # Pause between starting each file download.
 # Fixed delay:  download_delay: 2        (always 2 seconds)
 # Random range: download_delay: [1, 5]   (random 1–5 seconds per file)
-download_delay: [15, 30]
+download_delay: 20

@@ -230,9 +230,7 @@ def build_setup_wizard(  # NOSONAR
                 )
 
         with footer_area:
-            ui.button("Back", on_click=_go_back).props(_FLAT_GREY).style(
-                _FONT_13
-            )
+            ui.button("Back", on_click=_go_back).props(_FLAT_GREY).style(_FONT_13)
             with ui.row().style(_GAP_8):
                 ui.button(
                     "Send Code",
@@ -296,24 +294,34 @@ def build_setup_wizard(  # NOSONAR
             ui.label("Enter the chat or channel you want to download from.").style(
                 _TEXT_SUBTITLE
             )
-            chat_in = (
-                ui.input(
-                    "Chat ID / @username",
-                    value=wizard_state.get("chat_id", ""),
-                    placeholder="123456789 or @channelname",
+            with ui.row().style("gap: 8px; align-items: flex-end;"):
+                chat_in = (
+                    ui.input(
+                        "Chat ID / @username",
+                        value=wizard_state.get("chat_id", ""),
+                        placeholder="123456789 or @channelname",
+                    )
+                    .classes("col")
+                    .props(_PROPS_DENSE)
                 )
-                .classes("w-full")
-                .props(_PROPS_DENSE)
-            )
+                verify_btn = (
+                    ui.button(
+                        "Verify",
+                        on_click=lambda: _verify_chat(chat_in.value),
+                    )
+                    .props("outline dense color=info")
+                    .style(_FONT_13)
+                )
+            verify_label = ui.label("").style("font-size: 12px; font-weight: 500;")
             ui.label(
-                "Tip: forward a message from the chat to @RawDataBot"
+                "Formats: @username for public channels, "
+                "numeric ID for private groups (e.g. -1001234567890).\n"
+                "Tip: forward a message to @RawDataBot"
                 " on Telegram to get the ID."
             ).style("font-size: 11px; color: var(--text-tertiary);")
 
         with footer_area:
-            ui.button("Back", on_click=_go_back).props(_FLAT_GREY).style(
-                _FONT_13
-            )
+            ui.button("Back", on_click=_go_back).props(_FLAT_GREY).style(_FONT_13)
             with ui.row().style(_GAP_8):
                 ui.button(
                     "Skip",
@@ -325,6 +333,55 @@ def build_setup_wizard(  # NOSONAR
                 ).props(
                     'unelevated color="primary"'
                 ).style(_FONT_13 + " padding: 6px 24px;")
+
+        async def _verify_chat(chat_val):
+            chat_val = str(chat_val).strip()
+            if not chat_val:
+                verify_label.set_text("Enter a chat ID or @username first.")
+                verify_label.style("color: var(--text-tertiary);")
+                return
+            verify_label.set_text("Verifying...")
+            verify_label.style("color: var(--text-secondary);")
+            if wizard_state["client"] is not None:
+                try:
+                    entity = await wizard_state["client"].get_entity(chat_val)
+                    name = (
+                        getattr(entity, "title", None)
+                        or getattr(entity, "first_name", None)
+                        or ""
+                    )
+                    last = getattr(entity, "last_name", "")
+                    if last:
+                        name = f"{name} {last}".strip()
+                    if name:
+                        verify_label.set_text(f"Chat found: {name}")
+                        verify_label.style(
+                            "color: var(--positive); font-size: 12px; font-weight: 500;"
+                        )
+                    else:
+                        verify_label.set_text("Chat found but name unavailable.")
+                        verify_label.style("color: var(--text-secondary);")
+                except Exception as e:
+                    verify_label.set_text(f"Not found: {e}")
+                    verify_label.style("color: var(--negative);")
+            else:
+                try:
+                    chat_id_val = int(chat_val)
+                except ValueError:
+                    chat_id_val = chat_val
+                name = await media_downloader.resolve_chat_entity(
+                    wizard_state["api_id"],
+                    wizard_state["api_hash"],
+                    chat_id_val,
+                )
+                if name:
+                    verify_label.set_text(f"Chat found: {name}")
+                    verify_label.style(
+                        "color: var(--positive); font-size: 12px; font-weight: 500;"
+                    )
+                else:
+                    verify_label.set_text("Could not resolve chat. Check the ID.")
+                    verify_label.style("color: var(--negative);")
 
     def _go_back():
         wizard_state["step"] = max(1, wizard_state["step"] - 1)
@@ -346,9 +403,9 @@ def build_setup_wizard(  # NOSONAR
                 }
             ]
         if "download_delay" not in config:
-            config["download_delay"] = [15, 30]
+            config["download_delay"] = 20
         if "max_concurrent_downloads" not in config:
-            config["max_concurrent_downloads"] = 4
+            config["max_concurrent_downloads"] = 1
         if "media_types" not in config:
             config["media_types"] = [
                 "audio",
@@ -366,6 +423,7 @@ def build_setup_wizard(  # NOSONAR
             }
         if "phone" not in config and wizard_state.get("phone"):
             config["phone"] = wizard_state["phone"]
+        config["_wizard_completed"] = True
         save_config_fn(config)
         wizard_dialog.close()
         on_complete_fn()

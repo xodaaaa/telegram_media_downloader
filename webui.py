@@ -74,6 +74,14 @@ def index():  # NOSONAR
             ),
             once=True,
         )
+    elif not config.get("_wizard_completed"):
+        ui.timer(
+            0.3,
+            lambda: build_setup_wizard(
+                config, save_config, lambda: ui.navigate.reload(), start_step=1
+            ),
+            once=True,
+        )
     elif not session_exists:
         ui.timer(
             0.3,
@@ -172,9 +180,7 @@ def index():  # NOSONAR
                         "font-size: 13px; font-weight: 500;"
                         " color: var(--text-secondary);"
                     )
-                    ui.switch(value=False, on_change=dark_mode.toggle).props(
-                        "dense"
-                    )
+                    ui.switch(value=False, on_change=dark_mode.toggle).props("dense")
 
         # ━━━━━ MAIN CONTENT (tabs) ━━━━━
         with ui.column().style(

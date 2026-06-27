@@ -50,10 +50,10 @@ TOUR_STEPS = [
             "- **Max Concurrent** — How many files download simultaneously. "
             "Start with `1`–`3` to be safe. Higher values are faster but riskier\n"
             "- **Download Delay (sec)** — Wait time between starting each file. "
-            "Default is `15,30` (random 15–30s). Enter a single number like `2`, "
+            "Default is `20` (20 seconds). Enter a single number like `2`, "
             "or a range like `1,5` for a random delay between 1–5 seconds\n\n"
             "> 💡 **Tip:** If you're downloading from a large channel for the first time, "
-            "use conservative settings (max 2 concurrent, 2–3 sec delay)."
+            "use conservative settings (max 1 concurrent, 15–20 sec delay)."
         ),
     },
     {
@@ -78,8 +78,12 @@ TOUR_STEPS = [
         "body": (
             "In the **Target Chats** card, add the chats you want to download from:\n\n"
             "- Click **＋ Add Chat** to add a new chat entry\n"
-            "- **Chat ID** — The numeric ID of the chat/channel. You can find this using bots "
-            'like @userinfobot or by enabling "Show Chat ID" in Telegram Desktop settings\n'
+            "- **Chat ID** — The identifier of the chat/channel. Accepted formats:\n"
+            "  - **@username** — Public channels and usernames (e.g. `@channelname`)\n"
+            "  - **Numeric ID** — Private groups/channels (e.g. `-1001234567890`). "
+            "Note: groups have negative IDs prefixed with `-100`\n"
+            "  - Find IDs using @RawDataBot (forward any message) or enable "
+            '"Show Chat ID" in Telegram Desktop\n'
             "- **From / To Msg ID** — Optionally limit to a message range. `0` means no limit\n"
             "- **Last Read Msg ID** — Tracks where the downloader left off. Updated automatically after each run\n\n"
             "Expand **Advanced Overrides** to set a per-chat download directory or select specific media types for that chat only."

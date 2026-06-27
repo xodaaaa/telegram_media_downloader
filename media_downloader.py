@@ -11,20 +11,16 @@ from typing import List, Optional, Tuple, Union
 from rich.logging import RichHandler
 from telethon import TelegramClient, events
 from telethon.errors import FileReferenceExpiredError
-from telethon.tl.types import (
-    Document,
-    Message,
-    MessageMediaDocument,
-    MessageMediaPhoto,
-    Photo,
-)
+from telethon.tl.types import (Document, Message, MessageMediaDocument,
+                               MessageMediaPhoto, Photo)
 from tqdm import tqdm
 
 import config_manager
 import db
 from utils.file_management import get_next_name, manage_duplicate_file
 from utils.log import LogFilter
-from utils.meta import APP_VERSION, DEVICE_MODEL, LANG_CODE, SYSTEM_VERSION, print_meta
+from utils.meta import (APP_VERSION, DEVICE_MODEL, LANG_CODE, SYSTEM_VERSION,
+                        print_meta)
 from utils.updates import check_for_updates
 
 logging.basicConfig(
@@ -115,7 +111,7 @@ def _can_download(_type: str, file_formats: dict, file_format: Optional[str]) ->
 
 def _is_exist(file_path: str) -> bool:
     """
-    Check if a file exists and it is not a directory.
+    Check if a file exists, is not a directory and has non-zero size.
 
     Parameters
     ----------
@@ -125,9 +121,31 @@ def _is_exist(file_path: str) -> bool:
     Returns
     -------
     bool
-        True if the file exists else False.
+        True if the file exists and has content, else False.
     """
-    return not os.path.isdir(file_path) and os.path.exists(file_path)
+    if os.path.isdir(file_path):
+        return False
+    if not os.path.exists(file_path):
+        return False
+    if os.path.getsize(file_path) == 0:
+        return False
+    return True
+
+
+def _cleanup_partial(file_path: str) -> None:
+    """Remove a zero-byte file left by an interrupted download.
+
+    Parameters
+    ----------
+    file_path: str
+        Absolute path of the possibly partial file.
+    """
+    if os.path.exists(file_path) and not os.path.isdir(file_path):
+        if os.path.getsize(file_path) == 0:
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
 
 
 def _resolve_monitor_settings(global_config: dict, chat_conf: dict) -> dict:
@@ -151,7 +169,7 @@ def _resolve_monitor_settings(global_config: dict, chat_conf: dict) -> dict:
 
     raw_concurrent = chat_conf.get(
         "max_concurrent_downloads",
-        global_config.get("max_concurrent_downloads", 4),
+        global_config.get("max_concurrent_downloads", 1),
     )
     try:
         max_concurrent_downloads = int(raw_concurrent)
@@ -159,10 +177,10 @@ def _resolve_monitor_settings(global_config: dict, chat_conf: dict) -> dict:
             raise ValueError
     except (TypeError, ValueError):
         logger.warning(
-            "Invalid max_concurrent_downloads %r; defaulting to 4.",
+            "Invalid max_concurrent_downloads %r; defaulting to 1.",
             raw_concurrent,
         )
-        max_concurrent_downloads = 4
+        max_concurrent_downloads = 1
 
     download_directory_val = chat_conf.get(
         "download_directory", global_config.get("download_directory")
@@ -432,6 +450,7 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                 "retrying after 5 seconds",
                 message.id,
             )
+            _cleanup_partial(file_name)
             await asyncio.sleep(5)
             if retry == 2:
                 logger.error(
@@ -440,6 +459,7 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                 )
                 FAILED_IDS[chat_id].append(message.id)
         except Exception as e:
+            _cleanup_partial(file_name)
             msg = str(e)
             if "disconnected" in msg.lower() or "connection" in msg.lower():
                 logger.info(
@@ -509,7 +529,7 @@ async def process_messages(  # pylint: disable=too-many-positional-arguments
     file_formats: dict,
     chat_id: Union[int, str],
     download_directory: Optional[str] = None,
-    max_concurrent_downloads: int = 4,
+    max_concurrent_downloads: int = 1,
     download_delay: Optional[Union[float, List[float]]] = None,
 ) -> int:
     """
@@ -623,9 +643,9 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
             "Invalid max_concurrent_downloads value %r; defaulting to 4.",
             _max_concurrent_raw,
         )
-        max_concurrent_downloads = 4
+        max_concurrent_downloads = 1
     download_delay = chat_conf.get(
-        "download_delay", global_config.get("download_delay", [15, 30])
+        "download_delay", global_config.get("download_delay", 20)
     )
 
     start_date_val = chat_conf.get("start_date", global_config.get("start_date"))
@@ -766,7 +786,7 @@ async def register_monitor_handler(  # NOSONAR
     settings = _resolve_monitor_settings(global_config, chat_conf)
     semaphore = asyncio.Semaphore(max(1, settings["max_concurrent_downloads"]))
     download_delay = chat_conf.get(
-        "download_delay", global_config.get("download_delay", [15, 30])
+        "download_delay", global_config.get("download_delay", 20)
     )
     PENDING_IDS.setdefault(chat_id, 0)
     BACKLOG_ITERATED.setdefault(chat_id, 0)
@@ -912,6 +932,48 @@ async def check_account_premium(config: dict):
             "last_name": getattr(me, "last_name", "") or "",
             "username": getattr(me, "username", "") or "",
         }
+    except Exception:
+        return None
+
+
+async def resolve_chat_entity(
+    api_id: int, api_hash: str, chat_id: Union[int, str]
+) -> Optional[str]:
+    """Resolve a chat ID or username to its display name.
+
+    Parameters
+    ----------
+    api_id: int
+        Telegram API ID.
+    api_hash: str
+        Telegram API hash.
+    chat_id: Union[int, str]
+        Numeric chat ID or @username.
+
+    Returns
+    -------
+    str or None
+        The chat title/name if resolved, or None on failure.
+    """
+    try:
+        client = TelegramClient(
+            "media_downloader",
+            api_id=api_id,
+            api_hash=api_hash,
+            device_model=DEVICE_MODEL,
+            system_version=SYSTEM_VERSION,
+            app_version=APP_VERSION,
+            lang_code=LANG_CODE,
+        )
+        await client.start()
+        entity = await client.get_entity(chat_id)
+        await client.disconnect()
+        name = getattr(entity, "title", None) or getattr(entity, "first_name", None)
+        if name:
+            last = getattr(entity, "last_name", "")
+            if last:
+                name = f"{name} {last}".strip()
+        return name
     except Exception:
         return None
 

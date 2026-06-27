@@ -12,7 +12,9 @@ _db_initialized = False
 
 def get_connection():
     """Get a connection to the SQLite database."""
-    return sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
+    conn.execute("PRAGMA journal_mode=WAL")
+    return conn
 
 
 def init_db():

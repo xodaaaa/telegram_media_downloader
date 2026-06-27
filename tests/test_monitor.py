@@ -97,7 +97,7 @@ class TestResolveMonitorSettings(unittest.TestCase):
         result = _resolve_monitor_settings({}, {})
         self.assertEqual(result["media_types"], [])
         self.assertEqual(result["file_formats"], {})
-        self.assertEqual(result["max_concurrent_downloads"], 4)
+        self.assertEqual(result["max_concurrent_downloads"], 1)
         self.assertIsNone(result["download_directory"])
 
     def test_invalid_max_concurrent_downloads(self):
@@ -105,7 +105,7 @@ class TestResolveMonitorSettings(unittest.TestCase):
             with self.subTest(bad_val=bad_val):
                 chat_conf = {"max_concurrent_downloads": bad_val}
                 result = _resolve_monitor_settings({}, chat_conf)
-                self.assertEqual(result["max_concurrent_downloads"], 4)
+                self.assertEqual(result["max_concurrent_downloads"], 1)
 
     def test_download_directory_relative(self):
         result = _resolve_monitor_settings({}, {"download_directory": "rel_dl"})

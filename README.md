@@ -44,7 +44,7 @@ On first run, the Web UI detects what's missing and guides you:
 | **Target Chat** | Chat ID or @username | [@RawDataBot](https://t.me/RawDataBot) on Telegram |
 
 After the wizard, your `config.yaml` is created automatically with safe
-defaults (`download_delay: [15, 30]`, all media types enabled).
+defaults (`download_delay: 20`, `max_concurrent_downloads: 1`, all media types enabled).
 
 If you already have a session, the wizard skips to only what's missing.
 
@@ -81,8 +81,8 @@ python3 webui.py
 | `mode` | `history` | `history` (backlog) · `monitor` (live) · `history_monitor` (both) |
 | `chat_id` | — | Target chat/channel (can also use `chats:` list) |
 | `media_types` | all 6 | `audio`, `document`, `photo`, `video`, `voice`, `video_note` |
-| `download_delay` | `[15, 30]` | Seconds between files. Number for fixed, `[min, max]` for random, `null` to disable |
-| `max_concurrent_downloads` | `4` | Simultaneous downloads per batch |
+| `download_delay` | `20` | Seconds between files. Number for fixed, `[min, max]` for random, `null` to disable |
+| `max_concurrent_downloads` | `1` | Simultaneous downloads per batch |
 | `download_directory` | project folder | Custom download path |
 
 > Full schema in `config.yaml.example`. All options can be overridden per-chat.

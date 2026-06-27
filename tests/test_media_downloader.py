@@ -1084,8 +1084,13 @@ class MediaDownloaderTestCase(unittest.TestCase):
 
     def test_is_exist(self):
         this_dir = os.path.dirname(os.path.abspath(__file__))
-        result = _is_exist(os.path.join(this_dir, "__init__.py"))
+        result = _is_exist(os.path.join(this_dir, "test_media_downloader.py"))
         self.assertTrue(result)
+
+        result_zero = _is_exist(
+            os.path.join(this_dir, "__init__.py")
+        )
+        self.assertFalse(result_zero)
 
         result1 = _is_exist(os.path.join(this_dir, "init.py"))
         self.assertFalse(result1)
@@ -1332,7 +1337,7 @@ class MediaDownloaderTestCase(unittest.TestCase):
     def test_process_chat_invalid_max_concurrent_downloads(
         self, mock_proc, mock_update
     ):
-        """None/bad string/zero max_concurrent_downloads falls back to 4 with warning."""
+        """None/bad string/zero max_concurrent_downloads falls back to 1 with warning."""
         import media_downloader
 
         client = MockClient()
