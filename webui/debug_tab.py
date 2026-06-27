@@ -27,14 +27,18 @@ def build_debug_tab(config: dict, this_dir: str, log_area_holder: dict):
     """
     with ui.column().style("gap: 2px; margin-bottom: 28px; align-items: center;"):
         ui.label("Debug Report").classes("section-title")
-        ui.label(
-            "Generate an exportable report for troubleshooting."
-        ).classes("section-subtitle")
+        ui.label("Generate an exportable report for troubleshooting.").classes(
+            "section-subtitle"
+        )
 
-    report_output = ui.textarea("Report").style(
-        "width: 100%; min-height: 400px; font-family: monospace;"
-        " font-size: 12px; line-height: 1.5;"
-    ).props("outlined readonly")
+    report_output = (
+        ui.textarea("Report")
+        .style(
+            "width: 100%; min-height: 400px; font-family: monospace;"
+            " font-size: 12px; line-height: 1.5;"
+        )
+        .props("outlined readonly")
+    )
 
     def _generate_report() -> str:
         safe = obfuscate_config(config)
@@ -72,15 +76,11 @@ def build_debug_tab(config: dict, this_dir: str, log_area_holder: dict):
         lines.append(
             f"  download_dir        : {safe.get('download_directory', '(app dir)')}"
         )
-        lines.append(
-            f"  delay               : {safe.get('download_delay', '?')}"
-        )
+        lines.append(f"  delay               : {safe.get('download_delay', '?')}")
         lines.append(
             f"  max_concurrent      : {safe.get('max_concurrent_downloads', '?')}"
         )
-        lines.append(
-            f"  media_types         : {safe.get('media_types', [])}"
-        )
+        lines.append(f"  media_types         : {safe.get('media_types', [])}")
         lines.append("")
 
         # Chats
@@ -119,9 +119,11 @@ def build_debug_tab(config: dict, this_dir: str, log_area_holder: dict):
 
         # Recent log tail
         lines.append("── Recent Log ──")
-        log_widget = log_area_holder.get("widget") if isinstance(
-            log_area_holder, dict
-        ) else log_area_holder
+        log_widget = (
+            log_area_holder.get("widget")
+            if isinstance(log_area_holder, dict)
+            else log_area_holder
+        )
         if log_widget is not None and hasattr(log_widget, "value"):
             tail = str(log_widget.value or "")
             for line in tail.split("\n")[-30:]:
@@ -132,8 +134,7 @@ def build_debug_tab(config: dict, this_dir: str, log_area_holder: dict):
 
         # Chat titles (obfuscated)
         titles = {
-            k: obfuscate_chat_name(v)
-            for k, v in media_downloader.CHAT_TITLES.items()
+            k: obfuscate_chat_name(v) for k, v in media_downloader.CHAT_TITLES.items()
         }
         if titles:
             lines.append(f"── Chat Titles ({len(titles)}) ──")
@@ -154,17 +155,19 @@ def build_debug_tab(config: dict, this_dir: str, log_area_holder: dict):
             on_click=lambda: report_output.set_value(_generate_report()),
         ).props('unelevated color="primary"').style("font-size: 13px;")
 
+        def _copy_report():
+            report = _generate_report()
+            safe_text = report.replace("\\", "\\\\").replace("`", "\\`")
+            safe_text = safe_text.replace("\n", "\\n").replace("\r", "")
+            safe_text = safe_text.replace('"', '\\"')
+            js_code = f'navigator.clipboard.writeText("{safe_text}")'
+            ui.run_javascript(js_code)
+            ui.notify("Report copied to clipboard", type="info")
+
         ui.button(
             "Copy to Clipboard",
             icon="content_copy",
-            on_click=lambda: (
-                ui.run_javascript(
-                    f"navigator.clipboard.writeText("
-                    f"`{_generate_report().replace('`', '\\`')}`"
-                    f")"
-                ),
-                ui.notify("Report copied to clipboard", type="info"),
-            ),
+            on_click=_copy_report,
         ).props("outline dense color=info").style("font-size: 13px;")
 
         def _download_report():
@@ -180,7 +183,9 @@ def build_debug_tab(config: dict, this_dir: str, log_area_holder: dict):
             "Save to File",
             icon="save",
             on_click=_download_report,
-        ).props("flat color=grey-7").style("font-size: 13px;")
+        ).props(
+            "flat color=grey-7"
+        ).style("font-size: 13px;")
 
     # Auto-generate on load
     report_output.set_value(_generate_report())
