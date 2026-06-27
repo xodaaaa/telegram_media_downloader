@@ -1038,6 +1038,73 @@ async def resolve_chat_entity(
                     pass
 
 
+async def get_user_dialogs(
+    api_id: int,
+    api_hash: str,
+    client: Optional[TelegramClient] = None,
+) -> List[dict]:
+    """Retrieve the user's dialogs (chats, channels, groups, bots).
+
+    Parameters
+    ----------
+    api_id: int
+        Telegram API ID.
+    api_hash: str
+        Telegram API hash.
+    client: TelegramClient or None
+        Existing connected client to reuse (e.g. from wizard step 2).
+
+    Returns
+    -------
+    list[dict]
+        Each dict has keys ``"id"`` (int or str), ``"name"`` (str),
+        ``"type"`` (str: ``"channel"``, ``"group"``, ``"bot"``, ``"user"``).
+        Returns empty list on failure.
+    """
+    dialogs = []
+    own_client = None
+    _client = client
+    try:
+        if _client is None or not await _client.is_connected():
+            own_client = TelegramClient(
+                "media_downloader",
+                api_id=api_id,
+                api_hash=api_hash,
+                device_model=DEVICE_MODEL,
+                system_version=SYSTEM_VERSION,
+                app_version=APP_VERSION,
+                lang_code=LANG_CODE,
+            )
+            await own_client.connect()
+            if not await own_client.is_user_authorized():
+                return []
+            _client = own_client
+        async for dialog in _client.iter_dialogs(limit=200):
+            entity = dialog.entity
+            dial_id = dialog.id
+            name = dialog.name or ""
+            etype = "user"
+            if getattr(entity, "broadcast", False):
+                etype = "channel"
+            elif getattr(entity, "megagroup", False):
+                etype = "group"
+            elif getattr(entity, "bot", False):
+                etype = "bot"
+            elif getattr(entity, "title", None):
+                etype = "group"
+            dialogs.append({"id": dial_id, "name": name, "type": etype})
+        dialogs.sort(key=lambda d: (d["type"] != "channel", d["name"].lower()))
+    except Exception:
+        pass
+    finally:
+        if own_client is not None:
+            try:
+                await own_client.disconnect()
+            except Exception:
+                pass
+    return dialogs
+
+
 async def send_auth_code(api_id: int, api_hash: str, phone: str) -> dict:
     """Create a client, connect, and request an SMS verification code.
 

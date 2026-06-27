@@ -320,12 +320,157 @@ def build_setup_wizard(  # NOSONAR
                 )
                 verify_btn_ref["btn"] = _verify_btn
             verify_label = ui.label("").style("font-size: 12px; font-weight: 500;")
+
+            # Browse My Chats toggle
+            browse_state = {
+                "open": False,
+                "dialogs": [],
+                "page": 0,
+                "loading": False,
+            }
+            browse_btn_ref = {}
+            browse_btn = (
+                ui.button(
+                    "Browse My Chats",
+                    icon="list",
+                    on_click=lambda: _toggle_browse(),
+                )
+                .props("flat dense color=grey-7")
+                .style(
+                    "font-size: 12px; width: 100%; justify-content: flex-start;"
+                    " margin-top: 4px;"
+                )
+            )
+            browse_btn_ref["btn"] = browse_btn
+            browse_container = ui.column().style(
+                "display: none; gap: 6px; padding: 8px;"
+                " border: 1px solid var(--border); border-radius: 8px;"
+                " margin-top: 6px; max-height: 260px; overflow-y: auto;"
+            )
+            with browse_container:
+                browse_list = ui.column().style("gap: 2px;")
+                with ui.row().style(
+                    "justify-content: space-between; align-items: center;"
+                    " padding: 4px 0; border-top: 1px solid var(--border);"
+                ):
+                    browse_page_label = ui.label("").style(
+                        "font-size: 11px; color: var(--text-tertiary);"
+                    )
+                    with ui.row().style("gap: 4px;"):
+                        browse_prev_btn = (
+                            ui.button(
+                                "Prev",
+                                on_click=lambda: _browse_page(-1),
+                            )
+                            .props("flat dense size=sm color=grey-7")
+                            .style("font-size: 11px;")
+                        )
+                        browse_next_btn = (
+                            ui.button(
+                                "Next",
+                                on_click=lambda: _browse_page(1),
+                            )
+                            .props("flat dense size=sm color=grey-7")
+                            .style("font-size: 11px;")
+                        )
+
             ui.label(
                 "Formats: @username for public channels, "
                 "numeric ID for private groups (e.g. -1001234567890).\n"
                 "Tip: forward a message to @RawDataBot"
                 " on Telegram to get the ID."
             ).style("font-size: 11px; color: var(--text-tertiary);")
+
+        async def _toggle_browse():
+            if browse_state["open"]:
+                browse_container.style("display: none;")
+                browse_state["open"] = False
+                browse_btn_ref["btn"].set_text("Browse My Chats")
+                browse_btn_ref["btn"].props("flat dense color=grey-7")
+                return
+            if browse_state["loading"]:
+                return
+            browse_state["loading"] = True
+            browse_btn_ref["btn"].set_text("Loading...")
+            browse_btn_ref["btn"].set_enabled(False)
+            dialogs = await media_downloader.get_user_dialogs(
+                wizard_state["api_id"],
+                wizard_state["api_hash"],
+                wizard_state.get("client"),
+            )
+            browse_state["dialogs"] = dialogs
+            browse_state["page"] = 0
+            browse_state["loading"] = False
+            browse_btn_ref["btn"].set_text("Hide My Chats")
+            browse_btn_ref["btn"].props("flat dense color=positive")
+            browse_btn_ref["btn"].set_enabled(True)
+            if dialogs:
+                browse_container.style("display: flex;")
+                _render_browse_page()
+            else:
+                browse_state["open"] = True
+                browse_btn_ref["btn"].set_text("Browse My Chats")
+                browse_btn_ref["btn"].props("flat dense color=grey-7")
+                verify_label.set_text("No chats found or unable to connect.")
+                verify_label.style("color: var(--negative);")
+
+        def _render_browse_page():
+            browse_list.clear()
+            dialogs = browse_state["dialogs"]
+            page = browse_state["page"]
+            per_page = 5
+            start = page * per_page
+            end = start + per_page
+            page_items = dialogs[start:end]
+            for d in page_items:
+                icon = {
+                    "channel": "campaign",
+                    "group": "groups",
+                    "bot": "smart_toy",
+                    "user": "person",
+                }.get(d["type"], "chat")
+                with browse_list:
+                    with ui.row().style("gap: 8px; align-items: center; width: 100%;"):
+                        ui.icon(icon, size="xs").style("color: var(--text-tertiary);")
+                        ui.label(d["name"]).style(
+                            "font-size: 12px; color: var(--text-secondary);"
+                            " flex: 1; white-space: nowrap; overflow: hidden;"
+                            " text-overflow: ellipsis;"
+                        )
+                        ui.button(
+                            "Select",
+                            on_click=lambda d=d: _select_dialog(d),
+                        ).props("flat dense size=sm color=primary").style(
+                            "font-size: 11px;"
+                        )
+            total_pages = max(1, -(-len(dialogs) // per_page))  # ceil
+            browse_page_label.set_text(
+                f"Page {page + 1} of {total_pages} ({len(dialogs)} chats)"
+            )
+            browse_prev_btn.set_enabled(page > 0)
+            browse_next_btn.set_enabled(end < len(dialogs))
+
+        def _browse_page(delta):
+            new_page = browse_state["page"] + delta
+            if 0 <= new_page < max(1, -(-len(browse_state["dialogs"]) // 5)):
+                browse_state["page"] = new_page
+                _render_browse_page()
+
+        def _select_dialog(dialog):
+            wizard_state["chat_id"] = str(dialog["id"])
+            wizard_state["verified_name"] = dialog["name"]
+            chat_in.set_value(dialog["name"])
+            chat_in.props(_PROPS_DENSE + ' color="positive"')
+            verify_label.set_text("Chat selected")
+            verify_label.style(
+                "color: var(--positive); font-size: 12px; font-weight: 500;"
+            )
+            verify_btn_ref["btn"].set_text("Change")
+            verify_btn_ref["btn"].props("outline dense color=positive")
+            browse_container.style("display: none;")
+            browse_state["open"] = False
+            browse_btn_ref["btn"].set_text("Browse My Chats")
+            browse_btn_ref["btn"].props("flat dense color=grey-7")
 
         with footer_area:
             ui.button("Back", on_click=_go_back).props(_FLAT_GREY).style(_FONT_13)
