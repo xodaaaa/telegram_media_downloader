@@ -342,46 +342,23 @@ def build_setup_wizard(  # NOSONAR
                 return
             verify_label.set_text("Verifying...")
             verify_label.style("color: var(--text-secondary);")
-            if wizard_state["client"] is not None:
-                try:
-                    entity = await wizard_state["client"].get_entity(chat_val)
-                    name = (
-                        getattr(entity, "title", None)
-                        or getattr(entity, "first_name", None)
-                        or ""
-                    )
-                    last = getattr(entity, "last_name", "")
-                    if last:
-                        name = f"{name} {last}".strip()
-                    if name:
-                        verify_label.set_text(f"Chat found: {name}")
-                        verify_label.style(
-                            "color: var(--positive); font-size: 12px; font-weight: 500;"
-                        )
-                    else:
-                        verify_label.set_text("Chat found but name unavailable.")
-                        verify_label.style("color: var(--text-secondary);")
-                except Exception as e:
-                    verify_label.set_text(f"Not found: {e}")
-                    verify_label.style("color: var(--negative);")
-            else:
-                try:
-                    chat_id_val = int(chat_val)
-                except ValueError:
-                    chat_id_val = chat_val
-                name = await media_downloader.resolve_chat_entity(
-                    wizard_state["api_id"],
-                    wizard_state["api_hash"],
-                    chat_id_val,
+            try:
+                chat_id_val = int(chat_val)
+            except ValueError:
+                chat_id_val = chat_val
+            name = await media_downloader.resolve_chat_entity(
+                wizard_state["api_id"],
+                wizard_state["api_hash"],
+                chat_id_val,
+            )
+            if name:
+                verify_label.set_text(f"Chat found: {name}")
+                verify_label.style(
+                    "color: var(--positive); font-size: 12px; font-weight: 500;"
                 )
-                if name:
-                    verify_label.set_text(f"Chat found: {name}")
-                    verify_label.style(
-                        "color: var(--positive); font-size: 12px; font-weight: 500;"
-                    )
-                else:
-                    verify_label.set_text("Could not resolve chat. Check the ID.")
-                    verify_label.style("color: var(--negative);")
+            else:
+                verify_label.set_text("Could not resolve chat. Check the ID/username.")
+                verify_label.style("color: var(--negative);")
 
     def _go_back():
         wizard_state["step"] = max(1, wizard_state["step"] - 1)
