@@ -357,7 +357,9 @@ def build_setup_wizard(  # NOSONAR
             wiz_client = wizard_state.get("client")
             if wiz_client is not None and await wiz_client.is_connected():
                 try:
-                    entity = await wiz_client.get_entity(chat_id_val)
+                    entity = await asyncio.wait_for(
+                        wiz_client.get_entity(chat_id_val), timeout=10.0
+                    )
                     name = (
                         getattr(entity, "title", None)
                         or getattr(entity, "first_name", None)
@@ -366,14 +368,24 @@ def build_setup_wizard(  # NOSONAR
                         last = getattr(entity, "last_name", "")
                         if last:
                             name = f"{name} {last}".strip()
+                except asyncio.TimeoutError:
+                    name = None
                 except Exception:
                     name = None
             if not name:
-                name = await media_downloader.resolve_chat_entity(
-                    wizard_state["api_id"],
-                    wizard_state["api_hash"],
-                    chat_id_val,
-                )
+                try:
+                    name = await asyncio.wait_for(
+                        media_downloader.resolve_chat_entity(
+                            wizard_state["api_id"],
+                            wizard_state["api_hash"],
+                            chat_id_val,
+                        ),
+                        timeout=10.0,
+                    )
+                except asyncio.TimeoutError:
+                    name = None
+                except Exception:
+                    name = None
             if name:
                 wizard_state["chat_id"] = str(chat_val)
                 wizard_state["verified_name"] = name

@@ -567,11 +567,17 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
             chat_id_val = int(chat_val)
         except ValueError:
             chat_id_val = chat_val
-        name = await media_downloader.resolve_chat_entity(
-            config.get("api_id", 0),
-            config.get("api_hash", ""),
-            chat_id_val,
-        )
+        try:
+            name = await asyncio.wait_for(
+                media_downloader.resolve_chat_entity(
+                    config.get("api_id", 0),
+                    config.get("api_hash", ""),
+                    chat_id_val,
+                ),
+                timeout=10.0,
+            )
+        except (asyncio.TimeoutError, Exception):
+            name = None
         if name:
             c_inputs["_original_id"] = str(chat_val)
             c_inputs["_verified_name"] = name
