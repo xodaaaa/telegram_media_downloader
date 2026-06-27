@@ -137,7 +137,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
             )
             with ui.row().style(
                 "padding: 12px 20px; border-top: 1px solid var(--border);"
-                " justify-content: flex-end; gap: 8px;"
+                " justify-content: center; gap: 8px;"
             ):
                 ui.button("Select", on_click=lambda: _select_folder()).props(
                     'unelevated color="primary"'
