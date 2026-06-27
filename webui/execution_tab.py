@@ -112,9 +112,7 @@ def build_execution_tab(  # NOSONAR
     def update_media_counts():
         if media_counts_label is not None:
             counts = db.get_download_counts()
-            media_counts_label.set_text(
-                f"{counts['video']} / {counts['photo']}"
-            )
+            media_counts_label.set_text(f"{counts['video']} / {counts['photo']}")
 
     # Metrics row
     with ui.row().style(
@@ -432,6 +430,7 @@ def build_execution_tab(  # NOSONAR
         media_downloader.BACKLOG_ITERATED.clear()
         media_downloader.BACKLOG_DONE.clear()
         media_downloader.CHAT_TITLES.clear()
+        media_downloader._ERROR_LOG.clear()
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:
@@ -522,6 +521,7 @@ def build_execution_tab(  # NOSONAR
         media_downloader.BACKLOG_ITERATED.clear()
         media_downloader.BACKLOG_DONE.clear()
         media_downloader.CHAT_TITLES.clear()
+        media_downloader._ERROR_LOG.clear()
         main_logger = logging.getLogger("media_downloader")
         main_logger.addHandler(ui_logger)
         try:

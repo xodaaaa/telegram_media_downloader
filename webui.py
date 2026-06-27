@@ -23,6 +23,7 @@ except ImportError:
 import media_downloader
 from config_manager import load_config, save_config
 from webui.config_tab import build_config_tab
+from webui.debug_tab import build_debug_tab
 from webui.execution_tab import build_execution_tab
 from webui.history_tab import build_history_tab
 from webui.setup_wizard import build_setup_wizard
@@ -179,6 +180,8 @@ def index():  # NOSONAR
                 nav_items.append((n3, "history"))
                 n4 = make_nav("Terminal", "terminal", "terminal")
                 nav_items.append((n4, "terminal"))
+                n5 = make_nav("Debug", "bug_report", "debug")
+                nav_items.append((n5, "debug"))
 
             with ui.column().style("gap: 8px; padding: 0 4px;"):
                 ui.html('<hr class="divider" style="margin: 0;">')
@@ -316,6 +319,9 @@ def index():  # NOSONAR
                         )
                     )
                     log_area_holder["widget"] = log_area
+
+                with ui.tab_panel("debug").style(_PADDING_0):
+                    build_debug_tab(config, THIS_DIR, log_area_holder)
 
     # Build tour
     show_tour, check_first_visit = build_tour(current_page, tab_panels, nav_items)

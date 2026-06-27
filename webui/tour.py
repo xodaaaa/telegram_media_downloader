@@ -178,6 +178,22 @@ TOUR_STEPS = [
             "You're all set! Happy downloading 🎉"
         ),
     },
+    {
+        "icon": "🔧",
+        "title": "Step 12 · Debug Report",
+        "page": "debug",
+        "body": (
+            "The **Debug** tab helps you troubleshoot issues:\n\n"
+            "- **Auto-captures** errors from downloads and monitoring\n"
+            "- **Generate Report** — Creates a full diagnostic report with "
+            "system info, obfuscated config, recent errors, and log tail\n"
+            "- **Copy to Clipboard** — Copies the report for easy sharing\n"
+            "- **Save to File** — Exports a `.txt` file with the report\n\n"
+            "All sensitive data (API credentials, phone numbers, chat IDs) is "
+            "automatically **obfuscated** — only partial values are visible.\n\n"
+            "> 💡 Share the report when reporting bugs to help diagnose issues quickly."
+        ),
+    },
 ]
 
 

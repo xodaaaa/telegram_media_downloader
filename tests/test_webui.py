@@ -14,7 +14,7 @@ nicegui = pytest.importorskip("nicegui", reason="NiceGUI requires Python >= 3.10
 
 from unittest import mock
 
-_VALID_TOUR_PAGES = {"config", "execution", "history", "terminal"}
+_VALID_TOUR_PAGES = {"config", "execution", "history", "terminal", "debug"}
 _TERMINAL_MAX_LINES = 10
 
 

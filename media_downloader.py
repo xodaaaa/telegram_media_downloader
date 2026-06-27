@@ -37,6 +37,31 @@ logging.getLogger("telethon.client.downloads").addFilter(LogFilter())
 logging.getLogger("telethon.network").addFilter(LogFilter())
 logger = logging.getLogger("media_downloader")
 
+
+class _ErrorCaptureHandler(logging.Handler):
+    """Capture ERROR+ log records into _ERROR_LOG for debug reports."""
+
+    def emit(self, record: logging.LogRecord):
+        _ERROR_LOG.append(
+            {
+                "time": (
+                    record.asctime if hasattr(record, "asctime") else record.created
+                ),
+                "level": record.levelname,
+                "message": record.getMessage(),
+                "lineno": record.lineno,
+                "funcName": record.funcName,
+            }
+        )
+        # Keep only last 50
+        while len(_ERROR_LOG) > 50:
+            _ERROR_LOG.pop(0)
+
+
+_error_handler = _ErrorCaptureHandler()
+_error_handler.setLevel(logging.ERROR)
+logger.addHandler(_error_handler)
+
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 FAILED_IDS: dict = {}
 DOWNLOADED_IDS: dict = {}
@@ -60,6 +85,9 @@ UI_PROGRESS_HOOK = None
 
 # Mutex for chat entity resolution to prevent concurrent session access
 _VERIFY_LOCK = asyncio.Lock()
+
+# Captured error log for debug reports (max 50 entries)
+_ERROR_LOG: list = []
 
 
 def update_config(config: dict):
