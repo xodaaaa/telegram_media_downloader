@@ -353,11 +353,27 @@ def build_setup_wizard(  # NOSONAR
                 chat_id_val = int(chat_val)
             except ValueError:
                 chat_id_val = chat_val
-            name = await media_downloader.resolve_chat_entity(
-                wizard_state["api_id"],
-                wizard_state["api_hash"],
-                chat_id_val,
-            )
+            name = None
+            wiz_client = wizard_state.get("client")
+            if wiz_client is not None and await wiz_client.is_connected():
+                try:
+                    entity = await wiz_client.get_entity(chat_id_val)
+                    name = (
+                        getattr(entity, "title", None)
+                        or getattr(entity, "first_name", None)
+                    )
+                    if name:
+                        last = getattr(entity, "last_name", "")
+                        if last:
+                            name = f"{name} {last}".strip()
+                except Exception:
+                    name = None
+            if not name:
+                name = await media_downloader.resolve_chat_entity(
+                    wizard_state["api_id"],
+                    wizard_state["api_hash"],
+                    chat_id_val,
+                )
             if name:
                 wizard_state["chat_id"] = str(chat_val)
                 wizard_state["verified_name"] = name
@@ -435,6 +451,12 @@ def build_setup_wizard(  # NOSONAR
             config["phone"] = wizard_state["phone"]
         config["_wizard_completed"] = True
         save_config_fn(config)
+        wiz_client = wizard_state.get("client")
+        if wiz_client is not None:
+            try:
+                await wiz_client.disconnect()
+            except Exception:
+                pass
         wizard_dialog.close()
         on_complete_fn()
 
