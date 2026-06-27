@@ -968,60 +968,38 @@ async def resolve_chat_entity(
     str or None
         The chat title/name if resolved, or None on failure.
     """
-    import sqlite3
-
-    for attempt in range(3):
-        client = None
-        try:
-            client = TelegramClient(
-                "media_downloader",
-                api_id=api_id,
-                api_hash=api_hash,
-                device_model=DEVICE_MODEL,
-                system_version=SYSTEM_VERSION,
-                app_version=APP_VERSION,
-                lang_code=LANG_CODE,
-            )
-            await client.connect()
-            if not await client.is_user_authorized():
+    client = None
+    try:
+        client = TelegramClient(
+            "media_downloader",
+            api_id=api_id,
+            api_hash=api_hash,
+            device_model=DEVICE_MODEL,
+            system_version=SYSTEM_VERSION,
+            app_version=APP_VERSION,
+            lang_code=LANG_CODE,
+        )
+        await client.connect()
+        if not await client.is_user_authorized():
+            return None
+        entity = await client.get_entity(chat_id)
+        name = (
+            getattr(entity, "title", None)
+            or getattr(entity, "first_name", None)
+        )
+        if name:
+            last = getattr(entity, "last_name", "")
+            if last:
+                name = f"{name} {last}".strip()
+        return name
+    except Exception:
+        return None
+    finally:
+        if client is not None:
+            try:
                 await client.disconnect()
-                return None
-            entity = await client.get_entity(chat_id)
-            await client.disconnect()
-            name = (
-                getattr(entity, "title", None)
-                or getattr(entity, "first_name", None)
-            )
-            if name:
-                last = getattr(entity, "last_name", "")
-                if last:
-                    name = f"{name} {last}".strip()
-            return name
-        except ValueError:
-            if client:
-                try:
-                    await client.disconnect()
-                except Exception:
-                    pass
-            return None
-        except sqlite3.OperationalError:
-            if client:
-                try:
-                    await client.disconnect()
-                except Exception:
-                    pass
-            if attempt < 2:
-                await asyncio.sleep(1.0 * (attempt + 1))
-            else:
-                return None
-        except Exception:
-            if client:
-                try:
-                    await client.disconnect()
-                except Exception:
-                    pass
-            return None
-    return None
+            except Exception:
+                pass
 
 
 async def send_auth_code(api_id: int, api_hash: str, phone: str) -> dict:

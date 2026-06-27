@@ -342,8 +342,8 @@ def build_setup_wizard(  # NOSONAR
                 ).style(_FONT_13 + " padding: 6px 24px;")
 
         async def _toggle_verify():
-            wizard_state["verified_name"] = wizard_state.get("verified_name", "")
-            if wizard_state["verified_name"]:
+            verified = wizard_state.get("verified_name", "")
+            if verified:
                 chat_in.set_value(wizard_state["chat_id"])
                 chat_in.props(_PROPS_DENSE)
                 wizard_state["verified_name"] = ""
@@ -351,30 +351,46 @@ def build_setup_wizard(  # NOSONAR
                 verify_btn_ref["btn"].set_text("Verify")
                 verify_btn_ref["btn"].props("outline dense color=info")
                 return
-            verify_label.set_text("Verifying...")
-            verify_label.style("color: var(--text-secondary);")
             chat_val = str(chat_in.value).strip()
             if not chat_val:
                 verify_label.set_text("Enter a chat ID or @username first.")
                 verify_label.style("color: var(--text-tertiary);")
                 return
+            verify_label.set_text("Verifying...")
+            verify_label.style("color: var(--text-secondary);")
             try:
                 chat_id_val = int(chat_val)
             except ValueError:
                 chat_id_val = chat_val
-            try:
-                name = await asyncio.wait_for(
-                    media_downloader.resolve_chat_entity(
-                        wizard_state["api_id"],
-                        wizard_state["api_hash"],
-                        chat_id_val,
-                    ),
-                    timeout=12.0,
-                )
-            except asyncio.TimeoutError:
-                name = None
-            except Exception:
-                name = None
+            name = None
+            wiz_client = wizard_state.get("client")
+            if wiz_client is not None:
+                try:
+                    entity = await asyncio.wait_for(
+                        wiz_client.get_entity(chat_id_val), timeout=8.0
+                    )
+                    name = (
+                        getattr(entity, "title", None)
+                        or getattr(entity, "first_name", None)
+                    )
+                    if name:
+                        last = getattr(entity, "last_name", "")
+                        if last:
+                            name = f"{name} {last}".strip()
+                except Exception:
+                    name = None
+            if not name:
+                try:
+                    name = await asyncio.wait_for(
+                        media_downloader.resolve_chat_entity(
+                            wizard_state["api_id"],
+                            wizard_state["api_hash"],
+                            chat_id_val,
+                        ),
+                        timeout=8.0,
+                    )
+                except Exception:
+                    name = None
             if name:
                 wizard_state["chat_id"] = str(chat_val)
                 wizard_state["verified_name"] = name
@@ -433,9 +449,6 @@ def build_setup_wizard(  # NOSONAR
             config["phone"] = wizard_state["phone"]
         config["_wizard_completed"] = True
         save_config_fn(config)
-        wiz_client = wizard_state.get("client")
-        if wiz_client is not None:
-            asyncio.ensure_future(wiz_client.disconnect())
         wizard_dialog.close()
         on_complete_fn()
 
