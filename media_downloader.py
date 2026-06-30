@@ -620,6 +620,7 @@ async def process_messages(  # pylint: disable=too-many-positional-arguments
     download_directory: str | None = None,
     max_concurrent_downloads: int = 1,
     download_delay: float | list[float] | None = None,
+    global_semaphore: asyncio.Semaphore | None = None,
 ) -> int:
     """
     Download media from Telegram.
@@ -655,7 +656,8 @@ async def process_messages(  # pylint: disable=too-many-positional-arguments
     semaphore = asyncio.Semaphore(max(1, max_concurrent_downloads))
 
     async def _download_with_limit(message: Message) -> int:
-        async with semaphore:
+        lock = global_semaphore if global_semaphore is not None else semaphore
+        async with lock:
             delay = _resolve_download_delay(download_delay)
             if delay is not None:
                 if delay > 0:
@@ -749,6 +751,7 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
     chat_conf: dict,
     pagination_limit: int,
     config_write_lock: asyncio.Lock,
+    global_semaphore: asyncio.Semaphore | None = None,
 ):
     """
     Process a single chat's media downloads.
@@ -847,6 +850,7 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
                 download_directory,
                 max_concurrent_downloads,
                 download_delay,
+                global_semaphore=global_semaphore,
             )
             # Memory cleanup for next batch
             CURRENT_BATCH_IDS[chat_id] = []
@@ -874,6 +878,7 @@ async def process_chat(  # pylint: disable=too-many-locals,too-many-branches,too
             download_directory,
             max_concurrent_downloads,
             download_delay,
+            global_semaphore=global_semaphore,
         )
         CURRENT_BATCH_IDS[chat_id] = []
         PROCESSED_IDS[chat_id] = []
@@ -1239,8 +1244,10 @@ async def begin_import(  # pylint: disable=too-many-locals,too-many-branches,too
 
     if parallel_chats:
         logger.info("Processing chats in parallel...")
+        global_semaphore = asyncio.Semaphore(max(1, config.get("max_concurrent_downloads", 1)))
         tasks = [
-            process_chat(client, config, chat_conf, pagination_limit, config_write_lock)
+            process_chat(client, config, chat_conf, pagination_limit,
+                         config_write_lock, global_semaphore)
             for chat_conf in chats_to_process
         ]
         await asyncio.gather(*tasks)
