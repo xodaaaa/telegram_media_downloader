@@ -422,7 +422,7 @@ def build_config_tab(config: dict, save_config_fn):  # NOSONAR
                     "ids_to_retry": [],
                 }
             with chats_container:
-                with ui.element("div").classes("chat-card").style("width: calc(50% - 6px);") as chat_card:
+                with ui.element("div").classes("chat-card").style("width: calc(50% - 6px); min-width: 0;") as chat_card:
                     c_inputs = {
                         "card": chat_card,
                         "ids_to_retry": chat_data.get("ids_to_retry", []),
