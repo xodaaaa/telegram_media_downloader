@@ -172,5 +172,94 @@ body.body--dark .terminal-log { background: #020617 !important; border-color: #1
 /* Force tab panels to fill width */
 .q-tab-panels, .q-tab-panel, .q-panel.scroll { width: 100% !important; }
 .q-tab-panels .q-tab-panel > * { width: 100%; }
+
+/* ── Mobile Responsive (≤900px) ───────────────────────────────── */
+@media (max-width: 900px) {
+
+    /* ── Sidebar → bottom navigation bar ── */
+    .sidebar {
+        width: 100% !important;
+        min-width: 100% !important;
+        height: 64px !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        top: auto !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        flex-direction: row !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        padding: 6px 0 !important;
+        border-right: none !important;
+        border-top: 2px solid var(--border) !important;
+        background: var(--surface) !important;
+        box-shadow: 0 -2px 12px rgba(0,0,0,0.08) !important;
+    }
+    body.body--dark .sidebar {
+        box-shadow: 0 -2px 12px rgba(0,0,0,0.3) !important;
+    }
+
+    /* Hide sidebar header, labels, footer; keep only nav items */
+    .sidebar-top > *:not(.nav-item) { display: none !important; }
+    .sidebar-top { flex-direction: row !important; gap: 0 !important; width: 100% !important; justify-content: space-around !important; }
+    .sidebar-footer { display: none !important; }
+
+    /* Nav items in bottom bar */
+    .nav-item {
+        flex-direction: column !important;
+        gap: 1px !important;
+        padding: 4px 6px !important;
+        font-size: 10px !important;
+        font-weight: 500 !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+        min-width: 56px !important;
+        text-align: center !important;
+        border-radius: var(--radius-sm) !important;
+    }
+    .nav-item .q-icon { font-size: 20px !important; opacity: 0.8 !important; }
+    .nav-item.active { background: var(--accent-soft) !important; }
+
+    /* Pusher for main content so bottom bar doesn't overlap */
+    .main-content {
+        padding: 16px 16px 80px 16px !important;
+        min-height: calc(100vh - 64px) !important;
+    }
+
+    /* Section titles smaller */
+    .section-title { font-size: 17px !important; }
+    .section-subtitle { font-size: 12px !important; }
+
+    /* Cards: less padding */
+    .premium-card { padding: 16px !important; }
+    .premium-card:hover { box-shadow: var(--shadow-sm) !important; }
+
+    /* Chat cards: full width instead of 50% */
+    .chat-card { width: 100% !important; }
+
+    /* Metrics row: 2×2 grid */
+    .metrics-row { gap: 8px !important; flex-wrap: wrap !important; justify-content: center !important; }
+    .metrics-row > div { width: calc(50% - 4px) !important; min-width: 110px !important; }
+    .metrics-row .q-icon { font-size: 18px !important; }
+
+    /* Execution buttons: stack vertically */
+    .q-btn { font-size: 13px !important; }
+    .q-btn .q-icon { font-size: 18px !important; }
+
+    /* Make input rows stack on mobile */
+    .q-field--outlined { width: 100% !important; }
+    .q-field__label { font-size: 12px !important; }
+
+    /* Table: horizontal scroll */
+    .q-table__container { overflow-x: auto !important; }
+    .q-table { min-width: 600px !important; }
+
+    /* Terminal: adapt height */
+    .terminal-log { height: calc(100vh - 320px) !important; }
+
+    /* Expansion items: compact */
+    .q-expansion-item__container { font-size: 13px !important; }
+}
 </style>
 """

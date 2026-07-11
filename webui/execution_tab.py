@@ -132,7 +132,7 @@ def build_execution_tab(  # NOSONAR
             media_counts_label.set_text(f"{counts['video']} / {counts['photo']}")
 
     # Metrics row
-    with ui.row().style(
+    with ui.row().classes("metrics-row").style(
         "gap: 32px; margin-bottom: 20px; align-items: end; justify-content: center;"
     ):
         with ui.column().style(_GAP_ALIGN):

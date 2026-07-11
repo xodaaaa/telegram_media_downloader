@@ -134,7 +134,7 @@ def index():  # NOSONAR
             " display: flex; flex-direction: column;"
             " justify-content: space-between;"
         ):
-            with ui.column().style("gap: 4px;"):
+            with ui.column().style("gap: 4px;").classes("sidebar-top"):
                 with ui.row().classes("items-center").style(
                     "gap: 10px; padding: 8px 16px 24px 16px;"
                 ):
@@ -188,7 +188,7 @@ def index():  # NOSONAR
                 n4 = make_nav("Terminal", "terminal", "terminal")
                 nav_items.append((n4, "terminal"))
 
-            with ui.column().style("gap: 8px; padding: 0 4px;"):
+            with ui.column().style("gap: 8px; padding: 0 4px;").classes("sidebar-footer"):
                 ui.html('<hr class="divider" style="margin: 0;">')
                 ui.button(
                     "Take Tour", on_click=lambda: show_tour(), icon="school"
@@ -206,7 +206,7 @@ def index():  # NOSONAR
                     ui.switch(value=False, on_change=dark_mode.toggle).props("dense")
 
         # ━━━━━ MAIN CONTENT (tabs) ━━━━━
-        with ui.column().style(
+        with ui.column().classes("main-content").style(
             "flex: 1; min-height: 100vh; padding: 32px 40px;"
             " background: var(--surface-dim);"
         ):
