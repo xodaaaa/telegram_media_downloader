@@ -1,5 +1,6 @@
 """History tab UI for the Telegram Media Downloader Web UI."""
 
+import asyncio
 import os
 
 from nicegui import ui
@@ -10,13 +11,16 @@ from utils.file_management import to_media_url
 _FONT_13 = "font-size: 13px;"
 
 
-def _safe_cb(fn):
-    def _wrapper():
+async def _periodic_safe(interval: float, fn) -> None:
+    """Run *fn* every *interval* seconds until the UI slot is deleted."""
+    while True:
+        await asyncio.sleep(interval)
         try:
             fn()
         except RuntimeError:
+            break
+        except Exception:
             pass
-    return _wrapper
 
 
 def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
@@ -49,8 +53,17 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
             total_bytes = db.get_total_downloaded_bytes()
             total_label.set_text(f"Total downloaded: {db.format_bytes(total_bytes)}")
 
+        def _safe_create_task(coro):
+            try:
+                asyncio.create_task(coro)
+            except RuntimeError:
+                try:
+                    coro.close()
+                except Exception:
+                    pass
+
         _refresh_total()
-        ui.timer(2.0, _safe_cb(_refresh_total))
+        _safe_create_task(_periodic_safe(2.0, _refresh_total))
 
         # ── Filters Row ──
         with ui.row().style(
@@ -244,6 +257,6 @@ def build_history_tab(config: dict, open_media_fn, this_dir: str):  # NOSONAR
                 "flat dense round color=grey-7"
             )
 
-        ui.timer(5.0, _safe_cb(load_history))
+        _safe_create_task(_periodic_safe(5.0, load_history))
 
         load_history()

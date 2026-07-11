@@ -507,20 +507,29 @@ def build_execution_tab(  # NOSONAR
             else:
                 pending_label.style("color: var(--text-secondary);")
 
-    # Periodic UI updates using asyncio loops instead of ui.timer.
+    # Periodic UI updates using asyncio tasks instead of ui.timer.
     # ui.timer depends on the parent DOM slot; if the slot is deleted
     # (tab switch, auto-reload), the timer raises RuntimeError *before*
-    # calling the callback.  asyncio loops catch RuntimeError at the
-    # call site and stop gracefully.
+    # calling the callback.  asyncio tasks don't have this dependency:
+    # they run in the background event loop and catch RuntimeError
+    # at the call site via _periodic_safe().
     #
-    # We use ui.timer(0, once=True) to defer task creation until the
-    # event loop is running, avoiding DeprecationWarning from
-    # asyncio.ensure_future called outside a running loop.
-    def _start_loops():
-        asyncio.create_task(_periodic_safe(0.5, update_speed_display))
-        asyncio.create_task(_periodic_safe(0.5, update_pending))
-        asyncio.create_task(_periodic_safe(1.0, update_total_gb))
-        asyncio.create_task(_periodic_safe(2.0, update_media_counts))
+    # In production (NiceGUI/uvicorn) a running event loop always
+    # exists, so asyncio.create_task() works directly.  In tests
+    # there's no loop, so we skip silently.
+    def _safe_create_task(coro):
+        try:
+            asyncio.create_task(coro)
+        except RuntimeError:
+            # No running event loop (e.g., pytest).
+            # Close the coroutine to avoid "was never awaited" warning.
+            try:
+                coro.close()
+            except Exception:
+                pass
 
-    ui.timer(0.0, _start_loops, once=True)
+    _safe_create_task(_periodic_safe(0.5, update_speed_display))
+    _safe_create_task(_periodic_safe(0.5, update_pending))
+    _safe_create_task(_periodic_safe(1.0, update_total_gb))
+    _safe_create_task(_periodic_safe(2.0, update_media_counts))
     update_total_gb()
