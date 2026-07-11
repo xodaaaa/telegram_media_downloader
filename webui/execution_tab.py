@@ -1,5 +1,6 @@
 """Execution tab UI for the Telegram Media Downloader Web UI."""
 
+import asyncio
 from dataclasses import dataclass, field
 import logging
 import os
@@ -19,6 +20,25 @@ _FONT_10_500 = (
     " color: var(--text-tertiary); text-transform: uppercase;"
     " letter-spacing: 0.05em;"
 )
+
+
+async def _periodic_safe(interval: float, fn) -> None:
+    """Run *fn* every *interval* seconds until the UI slot is deleted.
+
+    Catches ``RuntimeError`` from stale NiceGUI element references
+    (\"parent slot has been deleted\") and stops the loop silently.
+    Use this instead of ``ui.timer`` for periodic UI updates that
+    should stop when the parent view is torn down.
+    """
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            fn()
+        except RuntimeError:
+            # Parent slot deleted (tab switch, auto-reload) — stop permanently
+            break
+        except Exception:
+            pass
 
 
 @dataclass
@@ -475,16 +495,6 @@ def build_execution_tab(  # NOSONAR
     stop_download_fn["fn"] = stop_download
 
     # Timers — wrapped to survive page reloads (parent slot can be deleted)
-    def _safe_callback(fn):
-        def _wrapper():
-            try:
-                fn()
-            except RuntimeError:
-                pass
-        return _wrapper
-
-    ui.timer(0.5, _safe_callback(update_speed_display))
-
     def update_pending():
         if pending_label is not None:
             active = sum(media_downloader.PENDING_IDS.values())
@@ -497,7 +507,20 @@ def build_execution_tab(  # NOSONAR
             else:
                 pending_label.style("color: var(--text-secondary);")
 
-    ui.timer(0.5, _safe_callback(update_pending))
-    ui.timer(1.0, _safe_callback(update_total_gb))
-    ui.timer(2.0, _safe_callback(update_media_counts))
+    # Periodic UI updates using asyncio loops instead of ui.timer.
+    # ui.timer depends on the parent DOM slot; if the slot is deleted
+    # (tab switch, auto-reload), the timer raises RuntimeError *before*
+    # calling the callback.  asyncio loops catch RuntimeError at the
+    # call site and stop gracefully.
+    #
+    # We use ui.timer(0, once=True) to defer task creation until the
+    # event loop is running, avoiding DeprecationWarning from
+    # asyncio.ensure_future called outside a running loop.
+    def _start_loops():
+        asyncio.create_task(_periodic_safe(0.5, update_speed_display))
+        asyncio.create_task(_periodic_safe(0.5, update_pending))
+        asyncio.create_task(_periodic_safe(1.0, update_total_gb))
+        asyncio.create_task(_periodic_safe(2.0, update_media_counts))
+
+    ui.timer(0.0, _start_loops, once=True)
     update_total_gb()
