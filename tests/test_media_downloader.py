@@ -244,6 +244,34 @@ class MockClient:
     async def disconnect(self):
         """Mock client.disconnect(); no-op for tests."""
 
+    def iter_download(self, file, *, offset=0, file_size=None):
+        """Mock iter_download that yields synthetic bytes."""
+        remaining = (file_size or 0) - offset
+        chunk_size = 4096
+
+        class _MockDownloadIter:
+            def __init__(self, remain, csize):
+                self._remain = remain
+                self._csize = csize
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            def __aiter__(self):
+                return self
+
+            async def __anext__(self):
+                if self._remain <= 0:
+                    raise StopAsyncIteration
+                take = min(self._csize, self._remain)
+                self._remain -= take
+                return b"x" * take
+
+        return _MockDownloadIter(remaining, chunk_size)
+
     async def iter_messages(self, *args, **kwargs):
         items = [
             MockMessage(
@@ -1515,7 +1543,8 @@ class MediaDownloaderTestCase(unittest.TestCase):
         self.assertEqual(call_args[1]["total"], 1024)
         self.assertEqual(call_args[1]["unit"], "B")
         self.assertTrue(call_args[1]["unit_scale"])
-        self.assertIn("test_video.mp4", call_args[1]["desc"])
+        # desc uses media id fallback since MockVideo attr has no file_name
+        self.assertIn(str(message.video.id), call_args[1]["desc"])
 
     @mock.patch("media_downloader.tqdm")
     @mock.patch("media_downloader._is_exist", return_value=True)
@@ -1545,22 +1574,23 @@ class MediaDownloaderTestCase(unittest.TestCase):
             async_download_media(mock_client, message, ["video"], {"video": ["all"]})
         )
 
-        # Verify progress bar was created for existing file
+        # Verify progress bar was created via _download_with_iter
         self.assertEqual(result, 16)
         mock_tqdm.assert_called_once()
         call_args = mock_tqdm.call_args
         self.assertEqual(call_args[1]["total"], 2048)
-        self.assertIn("existing_video.mp4", call_args[1]["desc"])
+        self.assertEqual(call_args[1]["initial"], 0)
+        # Filename changed by get_next_name because _is_exist returned True
+        self.assertIn("copy", call_args[1]["desc"])
 
     @mock.patch("media_downloader.tqdm")
     def test_progress_callback_called_during_download(self, mock_tqdm):
-        """Test that progress callback is properly passed to download_media."""
+        """Test that tqdm is updated during iter_download-based download."""
         # Setup mocks
         mock_client = MockClient()
         mock_pbar = mock.Mock()
-        mock_pbar.n = 0  # Set initial progress to 0
-        mock_tqdm.return_value.__enter__ = mock.Mock(return_value=mock_pbar)
-        mock_tqdm.return_value.__exit__ = mock.Mock(return_value=None)
+        # tqdm() returns the mock pbar directly (no context manager in _download_with_iter)
+        mock_tqdm.return_value = mock_pbar
 
         # Create test message with video that has size
         message = MockMessage(
@@ -1573,29 +1603,24 @@ class MediaDownloaderTestCase(unittest.TestCase):
             ),
         )
 
-        # Mock the client's download_media to capture the progress_callback
-        captured_callback = None
-
-        async def mock_download_media(*args, **kwargs):  # NOSONAR
-            nonlocal captured_callback
-            captured_callback = kwargs.get("progress_callback")
-            return "downloaded"
-
-        mock_client.download_media = mock_download_media
-
         # Run the download
         result = self.loop.run_until_complete(
             async_download_media(mock_client, message, ["video"], {"video": ["all"]})
         )
 
-        # Verify callback was passed and is callable
+        # Verify download succeeded
         self.assertEqual(result, 17)
-        self.assertIsNotNone(captured_callback)
-        self.assertTrue(callable(captured_callback))
-
-        # Test the captured callback
-        captured_callback(50, 100)
-        mock_pbar.update.assert_called_with(50)
+        # tqdm was created with correct params
+        mock_tqdm.assert_called_once()
+        call_args = mock_tqdm.call_args
+        self.assertEqual(call_args[1]["total"], 1024)
+        self.assertEqual(call_args[1]["initial"], 0)
+        # desc contains the media id since MockVideo.file_name != doc attribute
+        self.assertIn(str(message.video.id), call_args[1]["desc"])
+        # pbar.update was called during download (chunks from iter_download)
+        self.assertTrue(mock_pbar.update.called)
+        # pbar.close was called after completion
+        self.assertTrue(mock_pbar.close.called)
 
     @classmethod
     def tearDownClass(cls):

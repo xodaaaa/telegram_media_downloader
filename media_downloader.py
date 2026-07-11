@@ -5,6 +5,7 @@ import logging
 import os
 import random
 import re
+import time
 from datetime import date, datetime, timezone
 from typing import List, Optional, Tuple, Union
 
@@ -18,7 +19,8 @@ from tqdm import tqdm
 
 import config_manager
 import db
-from utils.file_management import get_next_name, manage_duplicate_file
+from utils.checkpoint_db import checkpoint_db
+from utils.file_management import get_next_name, manage_duplicate_file, to_media_url
 from utils.log import LogFilter
 from utils.meta import print_meta
 from utils.parsing import safe_int
@@ -62,6 +64,7 @@ def reset_runtime_state():
 
     Call this before starting a new history download or monitor session
     to prevent cross-mode data leaks.
+    Also initialises the checkpoint database for resumable downloads.
     """
     PENDING_IDS.clear()
     FAILED_IDS.clear()
@@ -71,6 +74,8 @@ def reset_runtime_state():
     BACKLOG_ITERATED.clear()
     BACKLOG_DONE.clear()
     CHAT_TITLES.clear()
+    checkpoint_db.init()
+    checkpoint_db.cleanup_expired()
 
 
 def _get_chats_to_process(config: dict, *, raise_on_missing: bool = True) -> list:
@@ -384,6 +389,135 @@ def get_media_type(message: Message) -> str | None:  # NOSONAR
     return None
 
 
+async def _download_with_iter(  # pylint: disable=too-many-arguments
+    client: TelegramClient,
+    media,
+    file_name: str,
+    file_size: int,
+    chat_id: int | str,
+    message_id: int,
+    desc: str,
+    media_type: str,
+) -> str | None:
+    """Download a file chunk by chunk via ``iter_download`` with checkpoint resume.
+
+    Supports resuming from any interruption (network drop, crash, manual stop,
+    FloodWait) by persisting the byte offset to SQLite checkpoints.
+
+    Parameters
+    ----------
+    client: TelegramClient
+        Connected Telethon client.
+    media: Document | Photo | MessageMedia
+        Media object to download.
+    file_name: str
+        Target file path (may be modified if a copy-N suffix is needed).
+    file_size: int
+        Total file size in bytes.
+    chat_id: int | str
+        Chat identifier for checkpoint lookup.
+    message_id: int
+        Message identifier for checkpoint lookup.
+    desc: str
+        Human-readable description for progress bars (e.g. "Downloading video.mp4").
+    media_type: str
+        Media type label (``photo``, ``video``, etc.).
+
+    Returns
+    -------
+    str or None
+        Absolute path to the downloaded file, or ``None`` on failure.
+    """
+    # ── 1. Ensure checkpoint DB is initialised ──
+    checkpoint_db.init()
+
+    # ── 2. Check for existing partial download ──
+    key_chat = str(chat_id)
+    offset = 0
+    mode = "wb"
+
+    checkpoint = checkpoint_db.load(key_chat, message_id)
+    if checkpoint is not None and checkpoint.state == "DOWNLOADING":
+        if checkpoint.file_size == file_size and os.path.exists(file_name):
+            actual_size = os.path.getsize(file_name)
+            if actual_size == checkpoint.downloaded_bytes < file_size:
+                offset = actual_size
+                mode = "ab"
+                logger.info(
+                    "Resuming %s from byte %d / %d (%.1f%%)",
+                    desc, offset, file_size,
+                    100.0 * offset / file_size if file_size else 0,
+                )
+            elif actual_size >= file_size:
+                # Already complete — clean up stale checkpoint
+                checkpoint_db.delete(key_chat, message_id)
+                return file_name
+
+    # ── 2. Handle existing complete files (fresh downloads only) ──
+    if offset == 0:
+        if _is_exist(file_name):
+            file_name = get_next_name(file_name)
+            desc = f"Downloading {os.path.basename(file_name)}"
+
+    # ── 3. Ensure parent directory exists ──
+    parent = os.path.dirname(file_name)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+    # ── 4. Persist initial checkpoint ──
+    checkpoint_db.save(key_chat, message_id, file_name, file_size, offset, "DOWNLOADING")
+
+    # ── 5. Stream download ──
+    pbar = tqdm(
+        total=file_size, unit="B", unit_scale=True,
+        desc=desc, initial=offset,
+    )
+    last_ckpt = time.time()
+    written = offset
+
+    try:
+        with open(file_name, mode) as f:
+            async with client.iter_download(  # type: ignore[arg-type]
+                media, offset=offset, file_size=file_size,
+            ) as chunks:
+                async for chunk in chunks:
+                    f.write(chunk)
+                    written += len(chunk)
+                    pbar.update(len(chunk))
+
+                    # UI progress hook
+                    if UI_PROGRESS_HOOK is not None:
+                        try:
+                            UI_PROGRESS_HOOK(desc, written, file_size)
+                        except RuntimeError:
+                            pass
+
+                    # Periodic checkpoint every 30 seconds
+                    now = time.time()
+                    if now - last_ckpt >= 30.0:
+                        checkpoint_db.save(
+                            key_chat, message_id, file_name,
+                            file_size, written, "DOWNLOADING",
+                        )
+                        last_ckpt = now
+
+        pbar.close()
+        logger.info("Downloaded %s (%s bytes)", desc, written)
+
+        # Mark complete
+        checkpoint_db.delete(key_chat, message_id)
+        return os.path.abspath(file_name)
+
+    except Exception:
+        pbar.close()
+        # Save offset so next attempt can resume
+        checkpoint_db.save(
+            key_chat, message_id, file_name,
+            file_size, written, "DOWNLOADING",
+        )
+        raise
+
+
 # pylint: disable=too-many-nested-blocks
 async def download_media(  # pylint: disable=too-many-locals,too-many-branches,too-many-positional-arguments,too-many-statements  # NOSONAR
     client: TelegramClient,
@@ -450,22 +584,16 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                 desc = f"Downloading {display_name}"
                 logger.info(desc)
 
-                if _is_exist(file_name):
-                    file_name = get_next_name(file_name)
-                    with tqdm(
-                        total=file_size, unit="B", unit_scale=True, desc=desc
-                    ) as pbar:
-                        download_path = await client.download_media(
-                            message,
-                            file=file_name,
-                            progress_callback=lambda c, t, pbar=pbar: _progress_callback(
-                                c, t, pbar
-                            ),
-                        )
-                        download_path = manage_duplicate_file(
-                            download_path
-                        )  # type: ignore
+                if file_size > 0:
+                    # Checkpoint-based download with resume support
+                    download_path = await _download_with_iter(
+                        client, media_obj, file_name, file_size,
+                        chat_id, message.id, desc, _type,
+                    )
                 else:
+                    # Fallback for unknown-size media (no checkpoint possible)
+                    if _is_exist(file_name):
+                        file_name = get_next_name(file_name)
                     with tqdm(
                         total=file_size, unit="B", unit_scale=True, desc=desc
                     ) as pbar:
@@ -476,7 +604,9 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                                 c, t, pbar
                             ),
                         )
+
                 if download_path:
+                    download_path = manage_duplicate_file(download_path)  # type: ignore
                     logger.info("Media downloaded - %s", download_path)
                     logger.debug("Successfully downloaded message %s", message.id)
                     abs_path = os.path.abspath(download_path)
