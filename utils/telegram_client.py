@@ -1,10 +1,36 @@
 """Centralized TelegramClient factory."""
 
+import os
+import sqlite3
 from typing import Optional
 
 from telethon import TelegramClient
+from telethon.sessions.sqlite import SQLiteSession
 
 from utils.meta import APP_VERSION, DEVICE_MODEL, LANG_CODE, SYSTEM_VERSION
+
+
+class _WALSession(SQLiteSession):
+    """SQLiteSession subclass that enables WAL mode + busy_timeout.
+
+    WAL (Write-Ahead Logging) allows concurrent reads while a write
+    is in progress, and busy_timeout makes SQLite retry for up to
+    30 seconds before raising \"database is locked\".
+
+    This prevents ``sqlite3.OperationalError: database is locked``
+    when multiple downloads reconnect concurrently after a connection
+    drop (all trying to write to the same session file).
+    """
+
+    def _assert_connection(self):
+        cursor = super()._assert_connection()
+        if self._conn is not None:
+            try:
+                self._conn.execute("PRAGMA journal_mode=WAL")
+                self._conn.execute("PRAGMA busy_timeout=30000")
+            except Exception:
+                pass
+        return cursor
 
 
 def build_telegram_client(
@@ -14,6 +40,10 @@ def build_telegram_client(
     session_name: str = "media_downloader",
 ) -> TelegramClient:
     """Build a TelegramClient with the standard device metadata.
+
+    Uses a custom SQLite session that enables WAL mode and a 30-second
+    busy timeout to prevent \"database is locked\" errors during
+    concurrent reconnection after connection drops.
 
     Parameters
     ----------
@@ -29,8 +59,9 @@ def build_telegram_client(
     TelegramClient
         A Telethon client instance (not yet connected).
     """
+    session = _WALSession(session_name)
     return TelegramClient(
-        session_name,
+        session,
         api_id=api_id,
         api_hash=api_hash,
         device_model=DEVICE_MODEL,
