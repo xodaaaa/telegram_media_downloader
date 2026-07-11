@@ -406,17 +406,14 @@ def build_execution_tab(  # NOSONAR
                 len(set(flist)) for flist in media_downloader.FAILED_IDS.values()
             )
             if total_failures > 0:
-                update_status(f"Done \u00b7 {total_failures} errors", "status-warning")
                 _log_widget().push(
                     f"Warning: {total_failures} files failed. "
-                    "Check config.yaml ids_to_retry."
+                    "They will be retried on next run (ids_to_retry)."
                 )
-                ui.notify(
-                    f"Finished, but {total_failures} files failed.",
-                    type="warning",
-                    position="top",
-                )
-            else:
+            # Check if we should continue to monitor mode
+            fresh_config = load_config_fn()
+            config_mode = fresh_config.get("mode", "history_monitor")
+            if config_mode in ("history_monitor", "monitor"):
                 _log_widget().push("Backlog complete. Switching to monitor mode...")
                 ui.notify("Switching to monitor mode...", type="info")
                 start_btn.set_text("Monitoring...")
@@ -437,8 +434,17 @@ def build_execution_tab(  # NOSONAR
                     type="positive",
                 )
                 return
-            update_status("Complete", "status-success")
-            ui.notify("Download complete!", type="positive", position="top")
+            # history mode only — show completion status
+            if total_failures > 0:
+                update_status(f"Done \u00b7 {total_failures} errors", "status-warning")
+                ui.notify(
+                    f"Finished, but {total_failures} files failed.",
+                    type="warning",
+                    position="top",
+                )
+            else:
+                update_status("Complete", "status-success")
+                ui.notify("Download complete!", type="positive", position="top")
         except Exception as e:
             update_status("Error", "status-error")
             _log_widget().push(f"Error: {str(e)}")

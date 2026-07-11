@@ -546,23 +546,35 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
             )
             await asyncio.sleep(e.seconds)
             continue
+        except (ConnectionError, TimeoutError) as conn_err:
+            if file_name:
+                _cleanup_partial(file_name)
+            msg = str(conn_err)
+            logger.info(
+                "Message[%d]: connection lost (%s), waiting 3s "
+                "for auto-reconnect (attempt %d/3)...",
+                message.id,
+                msg[:80],
+                retry + 1,
+            )
+            await asyncio.sleep(3)
+            if retry == 2:
+                logger.error(
+                    "Message[%d]: connection lost after 3 retries, "
+                    "skipping.",
+                    message.id,
+                )
+                FAILED_IDS[chat_id].append(message.id)
         except Exception as e:
             if file_name:
                 _cleanup_partial(file_name)
-            msg = str(e)
-            if "disconnected" in msg.lower() or "connection" in msg.lower():
-                logger.info(
-                    "Message[%d]: download interrupted (connection closed).",
-                    message.id,
-                )
-            else:
-                logger.error(
-                    "Message[%d]: could not be downloaded due to "
-                    "following exception:\n[%s].",
-                    message.id,
-                    e,
-                    exc_info=True,
-                )
+            logger.error(
+                "Message[%d]: could not be downloaded due to "
+                "following exception:\n[%s].",
+                message.id,
+                e,
+                exc_info=True,
+            )
             FAILED_IDS[chat_id].append(message.id)
             break
     return message.id
@@ -678,11 +690,16 @@ async def process_messages(  # pylint: disable=too-many-positional-arguments
             BACKLOG_DONE[chat_id] = BACKLOG_DONE.get(chat_id, 0) + 1
             return msg_id
 
-    message_ids = await asyncio.gather(
-        *[_download_with_limit(message) for message in messages]
+    results = await asyncio.gather(
+        *[_download_with_limit(message) for message in messages],
+        return_exceptions=True,
     )
     logger.info("Processed batch of %d messages for chat %s", len(messages), chat_id)
-    last_message_id: int = max(message_ids)
+    # Filter out exceptions — they were already logged in download_media()
+    valid_ids: list[int] = [
+        r for r in results if isinstance(r, (int, str)) and int(r) > 0
+    ]
+    last_message_id: int = max(valid_ids) if valid_ids else 0
     return last_message_id
 
 

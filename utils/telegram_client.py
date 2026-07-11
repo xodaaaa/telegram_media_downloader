@@ -38,4 +38,9 @@ def build_telegram_client(
         app_version=APP_VERSION,
         lang_code=LANG_CODE,
         entity_cache_limit=50000,
+        connection_retries=None,  # infinite reconnection attempts
+        retry_delay=2,            # wait 2s between reconnection retries
+        timeout=30,               # connection timeout (seconds)
+        auto_reconnect=True,      # reconnect automatically on disconnect
+        flood_sleep_threshold=86400,  # auto-sleep floods up to 24h
     )
