@@ -26,6 +26,15 @@ from utils.meta import print_meta
 from utils.parsing import safe_int
 from utils.telegram_client import build_telegram_client
 
+
+class DownloadStallError(Exception):
+    """Raised when a download makes no progress for longer than the stall timeout."""
+
+
+# Default stall timeout in seconds: if no bytes received in this window, abort
+# and let the checkpoint-resume mechanism retry on the next run.
+_DOWNLOAD_STALL_TIMEOUT = 120.0
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(message)s",
@@ -473,6 +482,7 @@ async def _download_with_iter(  # pylint: disable=too-many-arguments
         desc=desc, initial=offset,
     )
     last_ckpt = time.time()
+    last_data = time.time()  # watchdog: last time we received bytes
     written = offset
 
     try:
@@ -484,6 +494,7 @@ async def _download_with_iter(  # pylint: disable=too-many-arguments
                     f.write(chunk)
                     written += len(chunk)
                     pbar.update(len(chunk))
+                    last_data = time.time()
 
                     # UI progress hook
                     if UI_PROGRESS_HOOK is not None:
@@ -495,6 +506,16 @@ async def _download_with_iter(  # pylint: disable=too-many-arguments
                     # Periodic checkpoint every 30 seconds
                     now = time.time()
                     if now - last_ckpt >= 30.0:
+                        # Stall detection: if no bytes received in
+                        # _DOWNLOAD_STALL_TIMEOUT seconds, abort so the
+                        # checkpoint-resume mechanism can retry later.
+                        idle = now - last_data
+                        if idle >= _DOWNLOAD_STALL_TIMEOUT:
+                            raise DownloadStallError(
+                                f"No progress for {idle:.0f}s "
+                                f"({_DOWNLOAD_STALL_TIMEOUT:.0f}s limit). "
+                                f"Written {written}/{file_size} bytes."
+                            )
                         checkpoint_db.save(
                             key_chat, message_id, file_name,
                             file_size, written, "DOWNLOADING",
@@ -508,6 +529,18 @@ async def _download_with_iter(  # pylint: disable=too-many-arguments
         checkpoint_db.delete(key_chat, message_id)
         return os.path.abspath(file_name)
 
+    except DownloadStallError:
+        pbar.close()
+        logger.warning(
+            "Download stalled after %d/%d bytes for %s "
+            "— checkpoint saved, will retry on next run.",
+            written, file_size, desc,
+        )
+        checkpoint_db.save(
+            key_chat, message_id, file_name,
+            file_size, written, "DOWNLOADING",
+        )
+        raise  # propagate to download_media → FAILED_Ids → ids_to_retry
     except Exception:
         pbar.close()
         # Save offset so next attempt can resume
@@ -695,6 +728,15 @@ async def download_media(  # pylint: disable=too-many-locals,too-many-branches,t
                     message.id,
                 )
                 FAILED_IDS[chat_id].append(message.id)
+        except DownloadStallError:
+            # Checkpoint already saved in _download_with_iter.
+            # Add to FAILED_IDS so it appears in ids_to_retry for next run.
+            logger.info(
+                "Message[%d]: download stalled, will retry on next run.",
+                message.id,
+            )
+            FAILED_IDS[chat_id].append(message.id)
+            break
         except Exception as e:
             if file_name:
                 _cleanup_partial(file_name)
